@@ -1,0 +1,2261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Little Moments</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Caveat:wght@500;600;700&family=Dancing+Script:wght@500;700&family=Homemade+Apple&family=Shadows+Into+Light&family=Patrick+Hand&family=Kalam:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --accent:#ff6b8a;
+    --accent-soft:#ffb3c6;
+    --glow: 255,107,138;
+    --bg-a:#1a0f2e;
+    --bg-b:#2d1b3d;
+    --paper:#faf3e6;
+    --ink:#332a24;
+    --gold:#e8c168;
+    --hand-font:'Caveat', cursive;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:#0b0710;
+    font-family:'Inter',sans-serif;
+    position:relative;
+    overflow:hidden;
+    -webkit-user-select:none; user-select:none;
+  }
+  input, textarea{ -webkit-user-select:text; user-select:text; }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  .stage{
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse at 20% 15%, rgba(var(--glow),0.10), transparent 55%),
+      radial-gradient(ellipse at 80% 85%, rgba(var(--glow),0.08), transparent 55%),
+      linear-gradient(160deg, var(--bg-a), var(--bg-b));
+    transition:background 1.2s ease;
+  }
+  #bgCanvas{ position:fixed; inset:0; z-index:1; pointer-events:none; }
+  .motes{position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden;}
+  .mote{ position:absolute; bottom:-10px; border-radius:50%; background:rgba(255,255,255,0.35); animation:drift linear infinite; }
+  @keyframes drift{
+    0%{ transform:translateY(0) translateX(0); opacity:0;}
+    10%{opacity:0.6;} 90%{opacity:0.35;}
+    100%{ transform:translateY(-110vh) translateX(var(--dx,20px)); opacity:0;}
+  }
+
+  .app{ position:relative; z-index:2; width:100%; height:100vh; height:100dvh; overflow:hidden; }
+  .screen{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:max(48px, env(safe-area-inset-top) + 26px) max(24px, env(safe-area-inset-right) + 16px)
+      max(30px, env(safe-area-inset-bottom) + 20px) max(24px, env(safe-area-inset-left) + 16px);
+    text-align:center; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .6s ease;
+  }
+  .screen.active{opacity:1; visibility:visible; pointer-events:auto;}
+  .screen.scrolly{ overflow-y:auto; overflow-x:hidden; justify-content:flex-start; -webkit-overflow-scrolling:touch; }
+  .screen.scrolly::-webkit-scrollbar{ width:0; }
+
+  .eyebrow{ font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:rgba(255,255,255,0.45); margin-bottom:14px; }
+
+  /* keep content column mobile-app-width even on tablet/laptop viewports */
+  .builder-head, .headline, .subline, .type-grid, .form-block, .save-bar, .mini-letter,
+  .price-row, .pay-btn, .preview-link-btn, .keepsake-btn, .link-box, .share-row,
+  .react-grid, .letter-card, .envelope-scene, .landing-hero, .landing-examples, .paywall-note{
+    width:100%; max-width:440px;
+  }
+
+  /* ===== landing page ===== */
+  .landing-hero{ display:flex; flex-direction:column; align-items:center; padding:6px 0 46px; }
+  .landing-glow{
+    width:64px; height:64px; border-radius:50%; margin-bottom:2px;
+    background:radial-gradient(circle, rgba(var(--glow),0.9), rgba(var(--glow),0));
+    box-shadow:0 0 50px 14px rgba(var(--glow),0.4); animation:pulse 2.8s ease-in-out infinite;
+  }
+  .landing-envelope{
+    font-size:52px; margin:-30px 0 20px; animation:floatY 3.4s ease-in-out infinite;
+    filter:drop-shadow(0 0 22px rgba(var(--glow),0.7));
+  }
+  .landing-title{ font-family:'Fraunces',serif; font-weight:500; font-style:italic; font-size:29px; line-height:1.3; color:#fff; margin:0 0 14px; }
+  .landing-sub{ font-size:13.5px; line-height:1.6; color:rgba(255,255,255,0.55); max-width:300px; margin:0 0 24px; }
+
+  .examples-marquee{
+    width:calc(100% + 48px); max-width:none; margin:0 -24px 26px; overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+    mask-image:linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+  }
+  .examples-track{ display:flex; gap:14px; width:max-content; padding:6px 4px; will-change:transform; }
+  .example-card{
+    flex:0 0 auto; width:148px; background:#faf3e6; border-radius:14px; padding:13px 13px 15px;
+    text-align:left; box-shadow:0 12px 24px -10px rgba(0,0,0,0.5); cursor:pointer; transition:transform .2s ease;
+  }
+  .example-card:hover{ transform:translateY(-3px) scale(1.02); }
+  .example-card .ec-eyebrow{ font-size:9px; letter-spacing:.07em; text-transform:uppercase; font-weight:600; margin-bottom:6px; }
+  .example-card .ec-greet{ font-family:'Caveat',cursive; font-weight:700; font-size:16px; color:#332a24; }
+  .example-card .ec-body{ font-family:'Caveat',cursive; font-size:13.5px; line-height:1.3; color:#332a24; margin-top:3px; max-height:52px; overflow:hidden; }
+  .example-card .ec-sign{ font-family:'Caveat',cursive; font-size:13.5px; text-align:right; margin-top:6px; color:#332a24; opacity:.7; }
+
+  .cta-btn{
+    background:var(--accent); border:none; color:#20131c; font-weight:700; font-size:14.5px; padding:16px 26px;
+    border-radius:100px; cursor:pointer; box-shadow:0 14px 32px -10px rgba(var(--glow),0.7); margin-bottom:14px; width:100%;
+  }
+  .cta-btn.small{ padding:12px 22px; font-size:13px; box-shadow:none; }
+  .ghost-btn{ background:none; border:none; color:rgba(255,255,255,0.55); font-size:12.5px; cursor:pointer; text-decoration:underline; padding:6px; }
+  .landing-examples{ padding-top:26px; border-top:1px solid rgba(255,255,255,0.08); text-align:center; padding-bottom:20px; }
+  .landing-footnote{ font-size:11px; color:rgba(255,255,255,0.35); margin:20px 0 22px; }
+
+  /* ===== builder chrome ===== */
+  .builder-head{
+    position:sticky; top:0; width:100%; padding:38px 0 14px; display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(180deg, var(--bg-a) 60%, transparent); z-index:20; margin-bottom:6px;
+  }
+  .back-btn{
+    width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12);
+    color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px;
+  }
+  .step-label{ font-size:12px; color:rgba(255,255,255,0.5); letter-spacing:.06em; }
+  .step-dots{ display:flex; gap:5px; }
+  .step-dots span{ width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); }
+  .step-dots span.on{ background:var(--accent); }
+
+  .headline{ font-family:'Fraunces',serif; font-weight:500; font-style:italic; font-size:22px; color:#fff; margin:4px 0 6px; text-align:left; align-self:flex-start; }
+  .subline{ font-size:12.5px; color:rgba(255,255,255,0.5); text-align:left; align-self:flex-start; margin-bottom:20px; }
+
+  /* type grid */
+  .type-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; padding-bottom:90px; }
+  .type-card{
+    position:relative; border-radius:18px; padding:16px 12px; text-align:left; cursor:pointer; overflow:hidden;
+    border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); transition:transform .18s ease, border-color .18s ease;
+  }
+  .type-card:hover{ transform:translateY(-2px); }
+  .type-card .tc-glow{ position:absolute; inset:-20% -20% auto auto; width:70px; height:70px; border-radius:50%; filter:blur(18px); opacity:.55; }
+  .type-card .tc-emo{ font-size:26px; display:inline-block; position:relative; z-index:2; }
+  .type-card .tc-name{ font-family:'Fraunces',serif; font-size:14.5px; color:#fff; margin-top:10px; position:relative; z-index:2; }
+  .type-card .tc-tag{ font-size:10.5px; color:rgba(255,255,255,0.45); margin-top:2px; position:relative; z-index:2; }
+  .type-card.selected{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), 0 10px 26px -10px rgba(var(--glow),0.5); }
+  @keyframes tcFloat{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-3px);} }
+  .type-card .tc-emo{ animation:tcFloat 2.8s ease-in-out infinite; }
+
+  /* customize form */
+  .form-block{ width:100%; text-align:left; margin-bottom:18px; padding-bottom:2px; }
+  .form-block label{ display:block; font-size:11px; color:rgba(255,255,255,0.45); margin-bottom:6px; letter-spacing:.03em; }
+  .form-block input, .form-block textarea{
+    width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.13); color:#fff;
+    border-radius:12px; padding:11px 13px; font-size:14px; font-family:'Inter',sans-serif; resize:none;
+  }
+  .form-block input:focus, .form-block textarea:focus{ outline:none; border-color:var(--accent); }
+  .inspire-btn{
+    margin-top:8px; background:none; border:1px dashed rgba(255,255,255,0.25); color:rgba(255,255,255,0.65);
+    font-size:12px; padding:8px 12px; border-radius:100px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+  }
+  .inspire-btn:hover{ border-color:var(--accent); color:#fff; }
+
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{
+    padding:8px 13px; border-radius:100px; font-size:12.5px; border:1px solid rgba(255,255,255,0.13);
+    background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.7); cursor:pointer; transition:all .15s ease;
+  }
+  .chip.active{ background:var(--accent); border-color:var(--accent); color:#241536; font-weight:600; }
+  .chip.emoji-chip{ font-size:18px; padding:7px 12px; }
+  .color-chip{ width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid rgba(255,255,255,0.15); }
+  .color-chip.active{ border-color:#fff; transform:scale(1.12); }
+  .paper-chip{
+    width:34px; height:34px; border-radius:9px; cursor:pointer; border:2px solid rgba(255,255,255,0.15);
+    display:flex; align-items:center; justify-content:center; font-size:12px;
+  }
+  .paper-chip.active{ border-color:var(--accent); transform:scale(1.1); box-shadow:0 0 0 1px var(--accent); }
+
+  .font-list{ display:flex; flex-direction:column; gap:8px; }
+  .font-option{
+    text-align:left; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.12); cursor:pointer; transition:all .15s ease;
+  }
+  .font-option:hover{ border-color:rgba(255,255,255,0.3); }
+  .font-option.active{ border-color:var(--accent); background:rgba(var(--glow),0.14); }
+  .font-option .fo-label{ font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px; }
+  .font-option .fo-sample{ font-size:22px; color:#fff; line-height:1.2; }
+
+  .deco-add-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .deco-add-btn{
+    width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
+    font-size:16px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .deco-list{ display:flex; flex-direction:column; gap:8px; min-height:8px; }
+  .deco-item{
+    position:relative; display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px 14px; touch-action:pan-y; cursor:grab;
+  }
+  .deco-item .deco-emo{ font-size:18px; }
+  .deco-item .deco-hint{ font-size:10px; color:rgba(255,255,255,0.35); }
+  .deco-hint-caption{ font-size:10.5px; color:rgba(255,255,255,0.35); margin:-2px 0 10px; }
+
+  .photo-upload-btn{
+    display:inline-flex; align-items:center; gap:6px; background:none; border:1px dashed rgba(255,255,255,0.25);
+    color:rgba(255,255,255,0.65); font-size:12.5px; padding:10px 14px; border-radius:12px; cursor:pointer;
+  }
+  .photo-upload-btn:hover{ border-color:var(--accent); color:#fff; }
+  .photo-grid{ display:flex; flex-wrap:wrap; gap:9px; margin-top:8px; }
+  .photo-grid-item{ position:relative; width:68px; height:68px; border-radius:11px; overflow:hidden; }
+  .photo-grid-item img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .photo-grid-item button{
+    position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; border:none;
+    background:rgba(0,0,0,0.6); color:#fff; font-size:10px; cursor:pointer;
+  }
+  .photo-grid-add{
+    width:68px; height:68px; border-radius:11px; border:1px dashed rgba(255,255,255,0.28); display:flex;
+    align-items:center; justify-content:center; font-size:22px; color:rgba(255,255,255,0.5); cursor:pointer;
+  }
+  .photo-grid-add:hover{ border-color:var(--accent); color:#fff; }
+  .photo-hint-caption{ font-size:10.5px; color:rgba(255,255,255,0.35); margin-top:8px; }
+
+  .save-bar{
+    position:sticky; bottom:0; left:0; right:0; margin-top:auto; padding:14px 0 4px;
+    background:linear-gradient(0deg, var(--bg-b) 55%, transparent); display:flex; align-items:center; gap:10px; z-index:30;
+  }
+  .save-btn{
+    flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16); color:#fff;
+    padding:12px; border-radius:12px; font-size:13.5px; font-weight:500; cursor:pointer;
+  }
+  .next-btn{
+    flex:1.4; background:var(--accent); border:none; color:#20131c; padding:12px; border-radius:12px;
+    font-size:13.5px; font-weight:600; cursor:pointer;
+  }
+  .save-toast{
+    position:absolute; bottom:76px; left:50%; transform:translateX(-50%) translateY(6px); background:rgba(0,0,0,0.75);
+    color:#fff; font-size:11.5px; padding:7px 13px; border-radius:100px; opacity:0; transition:all .3s ease; pointer-events:none;
+  }
+  .save-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* modal (message library) */
+  .modal-backdrop{
+    position:absolute; inset:0; background:rgba(6,3,9,0.72); z-index:60; opacity:0; visibility:hidden; transition:opacity .3s ease;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .modal-backdrop.show{ opacity:1; visibility:visible; }
+  .modal-sheet{
+    width:100%; max-width:460px; max-height:72%; background:#1b1226; border-radius:22px 22px 0 0; padding:20px 20px 22px;
+    transform:translateY(100%); transition:transform .35s cubic-bezier(.2,.8,.25,1); overflow-y:auto;
+  }
+  .modal-backdrop.show .modal-sheet{ transform:translateY(0); }
+  .modal-sheet h4{ font-family:'Fraunces',serif; font-weight:500; font-size:16px; color:#fff; margin:2px 0 14px; text-align:left; }
+  .msg-option{
+    text-align:left; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+    color:rgba(255,255,255,0.8); font-size:13px; line-height:1.45; margin-bottom:8px; cursor:pointer;
+  }
+  .msg-option:hover{ border-color:var(--accent); color:#fff; }
+  .modal-close{ display:block; margin:6px auto 0; background:none; border:none; color:rgba(255,255,255,0.4); font-size:12px; cursor:pointer; }
+
+  /* review + pay */
+  .mini-letter{
+    width:100%; max-width:250px; background:var(--paper); color:var(--ink); border-radius:6px; padding:20px 18px; margin:6px auto 22px;
+    box-shadow:0 18px 36px -14px rgba(0,0,0,0.5); font-family:var(--hand-font);
+  }
+  .mini-letter .ml-greet{ font-size:17px; font-weight:600; }
+  .mini-letter .ml-body{ font-size:15px; line-height:1.4; margin:8px 0; max-height:90px; overflow:hidden; }
+  .mini-letter .ml-sign{ text-align:right; font-size:15px; color:var(--accent); }
+  .mini-letter .ml-deco{ font-size:14px; opacity:.8; margin-bottom:4px;}
+  .photo-cube-row{ display:flex; flex-wrap:wrap; gap:9px; justify-content:center; width:100%; max-width:320px; margin:14px auto 0; }
+  .photo-cube{
+    width:78px; height:78px; background:#fff; padding:5px 5px 11px; border-radius:9px;
+    box-shadow:0 12px 22px -9px rgba(0,0,0,0.45); transform:scale(0) rotate(var(--rot,-4deg)); opacity:0;
+    transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .35s ease;
+  }
+  .photo-cube.show{ transform:scale(1) rotate(var(--rot,-4deg)); opacity:1; }
+  .photo-cube.static{ transform:rotate(var(--rot,-4deg)); opacity:1; }
+  .photo-cube img{ width:100%; height:100%; object-fit:cover; border-radius:5px; display:block; }
+  .finale-emoji{
+    font-size:64px; margin-top:2px; text-align:center; transform:scale(0) rotate(-8deg); opacity:0; height:0;
+    transition:transform .5s cubic-bezier(.34,1.7,.5,1), opacity .3s ease; filter:drop-shadow(0 10px 24px rgba(0,0,0,0.5));
+  }
+  .finale-emoji.show{ transform:scale(1) rotate(0deg); opacity:1; height:auto; margin-top:14px; }
+
+  .price-row{
+    display:flex; justify-content:space-between; align-items:center; width:100%; padding:14px 4px;
+    border-top:1px solid rgba(255,255,255,0.1); border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:18px;
+  }
+  .price-row .pr-label{ font-size:13px; color:rgba(255,255,255,0.6); }
+  .price-row .pr-amount{ font-family:'Fraunces',serif; font-size:22px; color:#fff; }
+  .pay-btn{
+    width:100%; background:var(--accent); border:none; color:#20131c; padding:15px; border-radius:14px;
+    font-size:14.5px; font-weight:700; cursor:pointer; box-shadow:0 10px 26px -10px rgba(var(--glow),0.6);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .pay-btn:disabled{ opacity:.7; cursor:default; }
+  .spinner{ width:15px; height:15px; border-radius:50%; border:2px solid rgba(32,19,28,0.3); border-top-color:#20131c; animation:spin .7s linear infinite; display:none; }
+  .pay-btn.loading .spinner{ display:inline-block; }
+  .pay-btn.loading .pay-label{ display:none; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  .preview-link-btn{
+    width:100%; background:none; border:1px solid rgba(255,255,255,0.16); color:rgba(255,255,255,0.7);
+    padding:12px; border-radius:12px; font-size:13px; cursor:pointer; margin-bottom:10px;
+  }
+  .preview-link-btn:hover{ border-color:var(--accent); color:#fff; }
+  .paywall-note{ font-size:11px; color:rgba(255,255,255,0.4); text-align:center; margin:2px 0 16px; line-height:1.5; }
+  .video-result{ width:100%; max-width:440px; margin-bottom:10px; text-align:center; }
+  .video-result video{ width:100%; max-width:220px; border-radius:14px; box-shadow:0 16px 34px -14px rgba(0,0,0,0.5); margin-bottom:10px; }
+  .video-download-btn{
+    display:inline-block; background:var(--accent); color:#20131c; font-weight:700; font-size:13px;
+    padding:10px 18px; border-radius:100px; text-decoration:none; cursor:pointer;
+  }
+
+  /* success/share */
+  #screen-builder-success .success-emoji{ font-size:44px; margin-bottom:14px; animation:floatY 3s ease-in-out infinite; }
+  @keyframes floatY{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+  #screen-builder-success h2{ font-family:'Fraunces',serif; font-weight:500; font-size:21px; color:#fff; margin:0 0 6px; }
+  #screen-builder-success p{ color:rgba(255,255,255,0.5); font-size:12.5px; margin:0 0 22px; }
+  .link-box{
+    width:100%; display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
+    border-radius:12px; padding:11px 13px; margin-bottom:14px;
+  }
+  .link-box span{ flex:1; font-size:12px; color:rgba(255,255,255,0.75); text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .link-box button{ background:var(--accent); border:none; color:#20131c; font-size:11px; font-weight:700; padding:7px 11px; border-radius:8px; cursor:pointer; }
+  .share-row{ display:flex; gap:8px; width:100%; margin-bottom:10px; }
+  .share-row button{
+    flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.8);
+    padding:11px 4px; border-radius:12px; font-size:11.5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;
+  }
+  .share-row button:hover{ border-color:var(--accent); color:#fff; }
+  .share-row .sr-icon{ font-size:17px; }
+  .create-another{ margin-top:14px; background:none; border:none; color:rgba(255,255,255,0.4); font-size:12px; cursor:pointer; text-decoration:underline; }
+
+  /* ===== reveal screens (receiver side) ===== */
+  #screen-intro .glow-orb{
+    width:64px; height:64px; border-radius:50%; background:radial-gradient(circle, rgba(var(--glow),0.9), rgba(var(--glow),0));
+    box-shadow:0 0 40px 10px rgba(var(--glow),0.5); animation:pulse 2.6s ease-in-out infinite; margin-bottom:28px;
+  }
+  @keyframes pulse{ 0%,100%{ transform:scale(1); opacity:.8;} 50%{ transform:scale(1.25); opacity:1;} }
+  #screen-intro h1{ font-family:'Fraunces',serif; font-weight:500; font-style:italic; font-size:26px; line-height:1.35; color:#fff; margin:0 0 8px; }
+  #screen-intro p{ color:rgba(255,255,255,0.5); font-size:13px; margin:0; }
+
+  #screen-envelope .env-tap-hint{ color:rgba(255,255,255,0.4); font-size:12px; margin-top:30px; letter-spacing:.04em; }
+  .envelope-scene{ width:220px; height:160px; position:relative; margin:0 auto; cursor:pointer; }
+  .letter-peek{
+    position:absolute; left:14px; right:14px; top:-46px; height:150px; background:var(--paper); border-radius:6px 6px 0 0;
+    box-shadow:0 -2px 20px rgba(0,0,0,0.25); transform:translateY(150px); transition:transform .9s cubic-bezier(.2,.9,.25,1); z-index:2;
+  }
+  .env-body{
+    position:absolute; inset:0; top:16px; background:linear-gradient(160deg,#3a2350,#241536); border-radius:8px;
+    box-shadow:0 20px 40px -12px rgba(0,0,0,0.6); z-index:3; overflow:hidden;
+  }
+  .env-body::before{ content:''; position:absolute; inset:0; background:linear-gradient(120deg, rgba(255,255,255,0.06), transparent 40%); }
+  .env-flap{
+    position:absolute; top:16px; left:0; right:0; height:96px; background:linear-gradient(200deg,#4a2c68,#2c1a42);
+    clip-path:polygon(0 0, 100% 0, 50% 78%); transform-origin:top center; transition:transform 1s cubic-bezier(.3,.9,.3,1);
+    z-index:4; box-shadow:0 6px 16px rgba(0,0,0,0.25);
+  }
+  .env-flap.open{ transform:rotateX(180deg); }
+  .seal{
+    position:absolute; top:64px; left:50%; transform:translate(-50%,-50%); width:46px; height:46px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--accent-soft), var(--accent) 60%, #a13a55 100%);
+    display:flex; align-items:center; justify-content:center; font-size:18px; z-index:6;
+    box-shadow:0 4px 14px rgba(var(--glow),0.5); transition:transform .5s ease, opacity .5s ease;
+  }
+  .seal.cracked{ transform:translate(-50%,-50%) scale(0); opacity:0; }
+  .glow-burst{
+    position:absolute; top:16px; left:50%; transform:translate(-50%,0) scale(0); width:200px; height:200px; border-radius:50%;
+    background:radial-gradient(circle, rgba(var(--glow),0.55), transparent 65%); z-index:5; pointer-events:none; opacity:0;
+  }
+  .glow-burst.burst{ animation:burstOut 1s ease-out forwards; }
+  @keyframes burstOut{ 0%{ transform:translate(-50%,0) scale(0.2); opacity:.9;} 100%{ transform:translate(-50%,0) scale(2.6); opacity:0;} }
+  .envelope-scene.opened .letter-peek{ transform:translateY(-18px); }
+  .envelope-scene.opened .env-body{ box-shadow:0 20px 40px -12px rgba(0,0,0,0.6), 0 0 60px -6px rgba(var(--glow),0.45); }
+
+  #screen-sender .from-emoji{ font-size:40px; margin-bottom:18px; animation:floatY 3s ease-in-out infinite; }
+  #screen-sender .from-name{ font-family:'Fraunces',serif; font-weight:600; font-size:32px; color:#fff; }
+  #screen-sender .from-label{ color:rgba(255,255,255,0.5); font-size:13px; margin-bottom:6px; }
+
+  #screen-letter{ padding:36px 22px 26px; justify-content:flex-start; padding-top:44px; }
+  .letter-card{
+    background:var(--paper); color:var(--ink); width:100%; max-width:300px; border-radius:4px; padding:26px 22px 30px;
+    box-shadow:0 25px 50px -15px rgba(0,0,0,0.5); transform:rotateX(90deg) translateY(10px); transform-origin:top center;
+    transition:transform 1s cubic-bezier(.2,.9,.25,1); position:relative;
+  }
+  .letter-card.unfolded{ transform:rotateX(0deg) translateY(0); }
+  .letter-deco{ font-size:15px; margin-bottom:6px; opacity:.85; }
+
+  .letter-greeting, .letter-sign{ font-family:var(--hand-font); font-size:22px; font-weight:600; color:var(--ink); }
+  .letter-body{ font-family:var(--hand-font); font-size:20px; line-height:1.5; color:var(--ink); margin:14px 0; min-height:70px; }
+  .letter-body .word{ opacity:0; display:inline-block; white-space:pre; transform:translateY(6px); transition:opacity .4s ease, transform .4s ease; }
+  .letter-body .word.show{ opacity:1; transform:translateY(0); }
+  .letter-sign{ display:block; text-align:right; margin-top:10px; color:var(--accent); }
+  .letter-tap-hint{ margin-top:22px; font-size:12px; color:rgba(255,255,255,0.4); opacity:0; transition:opacity .6s ease; }
+  .letter-tap-hint.show{ opacity:1; }
+
+  /* ===== birthday candle blow-out ===== */
+  .candle-scene{ position:relative; width:280px; height:280px; margin:10px 0 8px; display:flex; align-items:center; justify-content:center; }
+  .cake{ font-size:132px; line-height:1; filter:drop-shadow(0 14px 24px rgba(0,0,0,0.4)); }
+  .flame-wrap{
+    position:absolute; top:26px; left:50%; transform-origin:50% 90%;
+    transform:translateX(-50%) rotate(calc(var(--sway,0) * 16deg));
+    transition:transform .06s linear, opacity .3s ease;
+  }
+  .flame{
+    width:14px; height:26px; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+    background:radial-gradient(circle at 50% 70%, #fff6c8 0%, #ffcf4d 35%, #ff8a3d 70%, #ff5a2e 100%);
+    box-shadow:0 0 18px 5px rgba(255,150,50,0.6);
+    animation:flameFlicker 1.1s ease-in-out infinite;
+  }
+  @keyframes flameFlicker{
+    0%,100%{ transform:scaleY(1) scaleX(1); }
+    30%{ transform:scaleY(1.08) scaleX(0.94); }
+    55%{ transform:scaleY(0.92) scaleX(1.05); }
+    80%{ transform:scaleY(1.05) scaleX(0.97); }
+  }
+  .flame-wrap.out{ opacity:0; transform:translateX(-50%) rotate(90deg) scale(0.3); }
+  .smoke-wrap{ position:absolute; top:20px; left:50%; transform:translateX(-50%); }
+  .smoke-puff{
+    position:absolute; width:18px; height:18px; border-radius:50%; background:rgba(200,200,200,0.55);
+    animation:smokeRise 1.4s ease-out forwards;
+  }
+  @keyframes smokeRise{
+    0%{ transform:translate(-50%,0) scale(0.6); opacity:0.6; }
+    100%{ transform:translate(-50%,-70px) scale(2.2); opacity:0; }
+  }
+  .candle-status{ font-size:13px; color:rgba(255,255,255,0.6); max-width:260px; margin:6px 0 20px; line-height:1.5; }
+  .candle-status.strong{ color:var(--accent); }
+
+  .celebration-layer{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:40; }
+  .particle{ position:absolute; will-change:transform, opacity; }
+
+  #screen-reaction .react-title{ font-family:'Fraunces',serif; font-style:italic; font-size:18px; color:#fff; margin-bottom:18px; }
+  .react-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; width:100%; max-width:300px; }
+  .react-btn{
+    display:flex; flex-direction:column; align-items:center; gap:5px; background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:10px 4px; color:rgba(255,255,255,0.75);
+    font-size:10px; cursor:pointer; transition:transform .2s ease, background .2s ease, border-color .2s ease;
+  }
+  .react-btn .emo{ font-size:20px; }
+  .react-btn:hover{ transform:translateY(-2px); background:rgba(255,255,255,0.1); }
+  .react-btn.picked{ border-color:var(--accent); background:rgba(var(--glow),0.18); color:#fff; transform:scale(1.05); }
+  .react-btn:disabled{ pointer-events:none; }
+  .react-btn:not(.picked):disabled{ opacity:.3; }
+
+  #screen-confirm .confirm-emoji{ font-size:44px; margin-bottom:18px; animation:floatY 3s ease-in-out infinite; }
+  #screen-confirm h2{ font-family:'Fraunces',serif; font-weight:500; font-size:20px; color:#fff; margin:0 0 8px; }
+  #screen-confirm p{ color:rgba(255,255,255,0.5); font-size:13px; max-width:230px; margin:0; }
+  .replay-link{
+    margin-top:22px; background:none; border:1px solid rgba(255,255,255,0.18); color:rgba(255,255,255,0.65);
+    padding:10px 18px; border-radius:100px; font-size:12px; cursor:pointer; transition:all .2s ease;
+  }
+  .replay-link:hover{ border-color:var(--accent); color:#fff; }
+  .replay-row{ display:flex; gap:10px; margin-top:22px; }
+  .keepsake-btn{
+    margin-top:6px; width:100%; max-width:260px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16);
+    color:#fff; padding:12px; border-radius:12px; font-size:13px; cursor:pointer; transition:all .2s ease;
+  }
+  .keepsake-btn:hover{ border-color:var(--accent); background:rgba(255,255,255,0.13); }
+  .keepsake-btn.done{ border-color:#4ade80; color:#bdf5d1; }
+
+  .tap-target{ cursor:pointer; }
+
+  .sound-toggle{
+    position:fixed; top:18px; right:18px; z-index:100; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
+    color:rgba(255,255,255,0.8); font-size:14px; width:36px; height:36px; border-radius:50%; cursor:pointer; backdrop-filter:blur(6px);
+  }
+  .proto-toggle{
+    position:fixed; top:18px; left:18px; z-index:100; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
+    color:rgba(255,255,255,0.75); font-size:11.5px; padding:9px 13px; border-radius:100px; cursor:pointer; backdrop-filter:blur(6px);
+  }
+</style>
+</head>
+<body>
+
+<div class="stage"></div>
+<canvas id="bgCanvas"></canvas>
+<div class="motes" id="motes"></div>
+<button class="sound-toggle" id="soundToggle" title="Toggle sound" data-no-sound>🔊</button>
+
+<div class="app" id="app">
+
+    <!-- ===================== LANDING ===================== -->
+    <div class="screen scrolly active" id="screen-landing">
+      <div class="landing-hero">
+        <div class="eyebrow">little moments</div>
+        <div class="landing-glow"></div>
+        <div class="landing-envelope">💌</div>
+        <h1 class="landing-title">Send someone<br>a little happiness ✨</h1>
+        <p class="landing-sub">Turn a message into a moment they'll actually feel — a few taps to make, seconds to open, theirs to keep.</p>
+
+        <div class="examples-marquee" id="examplesMarquee">
+          <div class="examples-track" id="examplesTrack"></div>
+        </div>
+
+        <button class="cta-btn" id="btnCreateNote">Create a Magical Note</button>
+        <button class="ghost-btn" id="btnSeeExamples">See examples ↓</button>
+      </div>
+      <div class="landing-examples" id="landingExamples">
+        <div class="eyebrow">a note for every moment</div>
+        <div class="type-grid" id="typeGridLanding"></div>
+        <p class="landing-footnote">$2 per note · the person receiving it doesn't need an account</p>
+        <button class="cta-btn small" id="btnCreateNote2">Start creating</button>
+      </div>
+    </div>
+
+    <!-- ===================== BUILDER: STEP 1 — TYPE ===================== -->
+    <div class="screen scrolly" id="screen-builder-types">
+      <div class="builder-head">
+        <div class="back-btn" data-back="screen-landing">‹</div>
+        <div class="step-label">Create a note</div>
+        <div class="step-dots"><span class="on"></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="headline">What's the occasion? ✨</div>
+      <div class="subline">Pick the feeling — you can change everything after.</div>
+      <div class="type-grid" id="typeGrid"></div>
+    </div>
+
+    <!-- ===================== BUILDER: STEP 2 — CUSTOMIZE ===================== -->
+    <div class="screen scrolly" id="screen-builder-customize">
+      <div class="builder-head">
+        <div class="back-btn" data-back="screen-builder-types">‹</div>
+        <div class="step-label">Customize</div>
+        <div class="step-dots"><span class="on"></span><span class="on"></span><span></span><span></span></div>
+      </div>
+      <div class="headline" id="custHeadline">Make it yours</div>
+      <div class="subline">Nothing here is permanent until you send it.</div>
+
+      <div class="form-block">
+        <label>To (recipient)</label>
+        <input id="bRecipient" type="text" maxlength="24" placeholder="Sam">
+      </div>
+      <div class="form-block">
+        <label>From (your name)</label>
+        <input id="bSender" type="text" maxlength="24" placeholder="Alex">
+      </div>
+      <div class="form-block">
+        <label>Your message</label>
+        <textarea id="bMessage" rows="5" placeholder="Write what you're feeling..."></textarea>
+        <button class="inspire-btn" id="inspireBtn">✨ I don't know what to write</button>
+      </div>
+
+      <div class="form-block">
+        <label>Style</label>
+        <div class="chip-row" id="styleRow"></div>
+      </div>
+      <div class="form-block">
+        <label>Color</label>
+        <div class="chip-row" id="colorRow"></div>
+      </div>
+      <div class="form-block">
+        <label>Decorations</label>
+        <div class="deco-add-row" id="decoAddRow"></div>
+        <div class="deco-hint-caption">Swipe a decoration right to duplicate, left to remove.</div>
+        <div class="deco-list" id="decoList"></div>
+      </div>
+
+      <div class="form-block">
+        <label>Photos (up to 5)</label>
+        <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
+        <div class="photo-grid" id="photoGrid"></div>
+        <p class="photo-hint-caption">Shown as little squares after your note — full quality, never compressed.</p>
+      </div>
+
+      <div class="form-block">
+        <label>Big emoji finale (optional)</label>
+        <div class="chip-row" id="emojiRow"></div>
+        <p class="photo-hint-caption">Flashes big at the very end — great for a roast punchline.</p>
+      </div>
+
+      <div class="form-block">
+        <label>Paper</label>
+        <div class="chip-row" id="paperRow"></div>
+      </div>
+
+      <div class="form-block">
+        <label>Handwriting style</label>
+        <div class="font-list" id="fontList"></div>
+      </div>
+
+      <div class="save-bar">
+        <button class="save-btn" id="saveBtn2">Save</button>
+        <button class="next-btn" id="toReview">Review note →</button>
+      </div>
+      <div class="save-toast" id="saveToast2">Saved ✓</div>
+    </div>
+
+    <!-- Message library modal -->
+    <div class="modal-backdrop" id="msgModal">
+      <div class="modal-sheet">
+        <h4>Need a little inspiration?</h4>
+        <div id="msgOptions"></div>
+        <button class="modal-close" id="msgModalClose">Close</button>
+      </div>
+    </div>
+
+    <!-- ===================== BUILDER: STEP 3 — REVIEW & PAY ===================== -->
+    <div class="screen scrolly" id="screen-builder-review">
+      <div class="builder-head">
+        <div class="back-btn" data-back="screen-builder-customize">‹</div>
+        <div class="step-label">Review</div>
+        <div class="step-dots"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+      </div>
+      <div class="headline">Your magical note ✨</div>
+      <div class="subline">Here's a taste of it — the real thing has sound and motion.</div>
+
+      <div class="mini-letter" id="miniLetter">
+        <div class="ml-deco" id="mlDeco"></div>
+        <div class="ml-greet" id="mlGreet">Dear Sam,</div>
+        <div class="ml-body" id="mlBody">Your message preview...</div>
+        <div class="ml-sign" id="mlSign">— Alex</div>
+        <div class="photo-cube-row" id="mlPhotoRow"></div>
+        <div class="finale-emoji" id="mlFinaleEmoji" style="margin-top:8px;"></div>
+      </div>
+
+      <button class="preview-link-btn" id="previewFullBtn">▶ Preview the full reveal</button>
+      <p class="paywall-note">This preview is free. The downloadable video and keepsake image unlock after payment.</p>
+      <canvas id="videoCanvas" width="900" height="1125" style="display:none;"></canvas>
+
+      <div class="form-block">
+        <label>Your email (for the payment receipt)</label>
+        <input id="senderEmail" type="email" placeholder="you@example.com">
+      </div>
+
+      <div class="price-row">
+        <span class="pr-label">One magical note</span>
+        <span class="pr-amount">$2.00</span>
+      </div>
+      <button class="pay-btn" id="payBtn">
+        <span class="spinner"></span><span class="pay-label">Pay $2 &amp; create note</span>
+      </button>
+      <p class="paywall-note" id="payError" style="display:none; color:#ff8a8a;"></p>
+      <div class="save-bar" style="background:none; padding-top:10px;">
+        <button class="save-btn" id="saveBtn3" style="flex:1;">Save for later</button>
+      </div>
+      <div class="save-toast" id="saveToast3">Saved ✓</div>
+    </div>
+
+    <!-- ===================== BUILDER: STEP 4 — SUCCESS / SHARE ===================== -->
+    <div class="screen scrolly" id="screen-builder-success">
+      <div style="height:20px"></div>
+      <div class="success-emoji">✨</div>
+      <h2>Your note is ready</h2>
+      <p>Anyone with this link can open it — no account needed.</p>
+      <div class="link-box">
+        <span id="fakeLink">littlemoments.app/n/ab12cd</span>
+        <button id="copyLinkBtn">Copy</button>
+      </div>
+      <div class="share-row">
+        <button id="waShareBtn"><span class="sr-icon">💬</span>WhatsApp</button>
+        <button id="qrBtn"><span class="sr-icon">▦</span>QR code</button>
+      </div>
+      <button class="preview-link-btn" id="previewFromSuccess">▶ See what they'll see</button>
+      <button class="keepsake-btn" id="keepsakeBtnSuccess">💾 Download keepsake image</button>
+      <button class="keepsake-btn" id="videoBtn">🎬 Generate a 5-second video</button>
+      <div class="video-result" id="videoResult" style="display:none;">
+        <video id="videoPreview" playsinline muted loop></video>
+        <a id="videoDownloadLink" class="video-download-btn" download="little-moment.webm">💾 Download video</a>
+      </div>
+      <button class="create-another" id="createAnotherBtn">Create another note</button>
+    </div>
+
+    <!-- ===================== REVEAL: RECEIVER SIDE ===================== -->
+    <div class="screen" id="screen-intro">
+      <div class="glow-orb"></div>
+      <div class="eyebrow">little moments</div>
+      <h1>Someone made something<br>special for you...</h1>
+      <p>Tap to open it</p>
+    </div>
+
+    <div class="screen" id="screen-envelope">
+      <div class="eyebrow">a little moment</div>
+      <div class="envelope-scene tap-target" id="envelopeScene">
+        <div class="glow-burst" id="glowBurst"></div>
+        <div class="letter-peek"></div>
+        <div class="env-body">
+          <div class="env-flap" id="envFlap"></div>
+          <div class="seal" id="seal">❤️</div>
+        </div>
+      </div>
+      <div class="env-tap-hint" id="envHint">Tap the envelope</div>
+    </div>
+
+    <div class="screen" id="screen-sender">
+      <div class="from-emoji" id="fromEmoji">❤️</div>
+      <div class="from-label">a little something from</div>
+      <div class="from-name" id="fromName">Alex</div>
+    </div>
+
+    <div class="screen" id="screen-letter">
+      <div class="letter-card" id="letterCard">
+        <div class="letter-deco" id="letterDeco"></div>
+        <div class="letter-greeting" id="letterGreeting">Dear Sam,</div>
+        <div class="letter-body" id="letterBody"></div>
+        <div class="letter-sign" id="letterSign">— Alex</div>
+      </div>
+      <div class="photo-cube-row" id="letterPhotoRow"></div>
+      <div class="finale-emoji" id="finaleEmoji"></div>
+      <div class="letter-tap-hint" id="letterHint">Tap anywhere to continue</div>
+      <div class="celebration-layer" id="celebrationLayer"></div>
+    </div>
+
+    <div class="screen" id="screen-candle">
+      <div class="eyebrow">make a wish 🎂</div>
+      <div class="candle-scene">
+        <div class="cake">🎂</div>
+        <div class="flame-wrap" id="flameWrap">
+          <div class="flame"></div>
+        </div>
+        <div class="smoke-wrap" id="smokeWrap"></div>
+      </div>
+      <p class="candle-status" id="candleStatus">Blow into your mic to blow out the candle</p>
+      <button class="cta-btn small" id="candleMicBtn">🎙️ Use my mic</button>
+      <button class="ghost-btn" id="candleFallbackBtn">Can't use mic? Tap to blow it out</button>
+      <button class="ghost-btn" id="candleSkipBtn">Skip</button>
+    </div>
+
+    <div class="screen" id="screen-reaction">
+      <div class="react-title">How did this make you feel?</div>
+      <div class="react-grid" id="reactGrid">
+        <button class="react-btn" data-r="loved" data-no-sound><span class="emo">❤️</span>Loved it</button>
+        <button class="react-btn" data-r="laugh" data-no-sound><span class="emo">😂</span>Made me laugh</button>
+        <button class="react-btn" data-r="day" data-no-sound><span class="emo">😭</span>Made my day</button>
+        <button class="react-btn" data-r="beautiful" data-no-sound><span class="emo">🥹</span>So beautiful</button>
+        <button class="react-btn" data-r="amazing" data-no-sound><span class="emo">🎉</span>Amazing</button>
+        <button class="react-btn" data-r="sad" data-no-sound><span class="emo">😢</span>Sad</button>
+        <button class="react-btn" data-r="disappointed" data-no-sound><span class="emo">😞</span>Disappointed</button>
+        <button class="react-btn" data-r="angry" data-no-sound><span class="emo">😠</span>Angry</button>
+        <button class="react-btn" data-r="dontcare" data-no-sound><span class="emo">😐</span>Don't care</button>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-confirm">
+      <div class="confirm-emoji" id="confirmEmoji">💌</div>
+      <h2 id="confirmHeading">Sent</h2>
+      <p id="confirmText">Alex will see that this made you feel something.</p>
+      <button class="keepsake-btn" id="keepsakeBtnConfirm">💾 Save this moment</button>
+      <div class="replay-row">
+        <button class="replay-link" id="replayBtn">Watch again</button>
+        <button class="replay-link" id="continueBtn">Continue</button>
+      </div>
+    </div>
+
+</div>
+
+<script>
+(function(){
+  const THEMES = {
+    love:{ accentHex:'#ff6b8a', accentSoft:'#ffb3c6', glow:'255,107,138', bgA:'#2b0f22', bgB:'#3d1a2e',
+      emoji:'❤️', particle:'heart', mood:'bright', label:'Love Note', tag:'Floating hearts, romantic glow',
+      msgs:[
+        "I don't say this enough, but you make ordinary days feel a little more like magic. Thank you for being exactly who you are.",
+        "Every version of you I've known has been worth loving. Just wanted you to hear that today.",
+        "You are my favorite person to tell small, unimportant things to. I love that about us.",
+        "If I could bottle how you make me feel, I'd never let anyone else near it." ] },
+    birthday:{ accentHex:'#ff9d4d', accentSoft:'#ffd08a', glow:'255,157,77', bgA:'#2c1a3a', bgB:'#3a2350',
+      emoji:'🎂', particle:'confetti', mood:'bright', label:'Birthday Note', tag:'Balloons, cake, confetti',
+      msgs:[
+        "Another year of you being effortlessly wonderful. Hope today is full of cake, laughter, and everything you love.",
+        "Happy birthday to someone who makes getting older look genuinely good.",
+        "May this year bring you fewer emails and more moments like this one.",
+        "You don't just have birthdays, you throw entire vibes. Here's to another one." ] },
+    thankyou:{ accentHex:'#f2b544', accentSoft:'#ffe1a3', glow:'242,181,68', bgA:'#20261a', bgB:'#2c3a24',
+      emoji:'🙏', particle:'flower', mood:'gentle', label:'Thank You Note', tag:'Flowers, warm sunlight',
+      msgs:[
+        "What you did meant more than you probably realize. I just wanted you to know it didn't go unnoticed.",
+        "Thank you for showing up when it counted. I won't forget it.",
+        "Some kindnesses are loud. Yours was quiet, and I noticed every bit of it.",
+        "You made something hard feel a lot lighter. Thank you, truly." ] },
+    roast:{ accentHex:'#ff5722', accentSoft:'#ffab8a', glow:'255,87,34', bgA:'#2e1710', bgB:'#3d1f14',
+      emoji:'😂', particle:'fire', mood:'funny', label:'Roast Note', tag:'Fire effects, playful chaos',
+      msgs:[
+        "You are living proof that confidence doesn't require competence. Never change. Please.",
+        "I'd explain the joke but honestly, you ARE the joke. Love you though.",
+        "You have the energy of someone who thinks fedoras are underrated. Iconic, honestly.",
+        "Somehow you're both the reason I laugh and the reason I have trust issues. Impressive." ] },
+    apology:{ accentHex:'#8fb4d9', accentSoft:'#dceaf7', glow:'143,180,217', bgA:'#1a2230', bgB:'#232f42',
+      emoji:'🫂', particle:'raintosun', mood:'gentle', label:'Apology Note', tag:'Rain turning into sunshine',
+      msgs:[
+        "I got it wrong, and I'm sorry. You deserved better from me, and I'm going to do better.",
+        "I've been turning this over and I owe you an honest apology, not an excuse.",
+        "I hurt you, even if I didn't mean to, and that matters more than my intentions did.",
+        "I'm sorry. No 'but,' no explanation first. Just that." ] },
+    appreciation:{ accentHex:'#e8c168', accentSoft:'#ffe9b3', glow:'232,193,104', bgA:'#241d10', bgB:'#332812',
+      emoji:'⭐', particle:'gold', mood:'bright', label:'Appreciation Note', tag:'Gold particles, celebration',
+      msgs:[
+        "Some people show up quietly and change everything. That's you. Thank you for all of it.",
+        "I don't think you hear this enough: you're genuinely appreciated, not just useful.",
+        "You make the people around you better just by being consistent and kind. Noticed. Valued.",
+        "This is your official, if informal, reminder that you matter more than you think." ] },
+    goodluck:{ accentHex:'#4ade80', accentSoft:'#b7f3cf', glow:'74,222,128', bgA:'#12261c', bgB:'#173a29',
+      emoji:'🍀', particle:'star', mood:'bright', label:'Good Luck Note', tag:'Stars, positive energy',
+      msgs:[
+        "You've got this. Whatever happens, I'm proud of you for even trying. Go show them.",
+        "Nervous is just excited without the confidence. Borrow mine, I believe in you completely.",
+        "Whatever the outcome, you already did the hard part by showing up. Good luck out there.",
+        "Sending you every bit of calm, sharp, ready energy I've got. You're prepared for this." ] },
+    congrats:{ accentHex:'#ffd166', accentSoft:'#fff0c2', glow:'255,209,102', bgA:'#241a10', bgB:'#3a2814',
+      emoji:'🎉', particle:'firework', mood:'bright', label:'Congratulations Note', tag:'Fireworks, celebration',
+      msgs:[
+        "You earned every bit of this. Look at what you built. I hope you let yourself feel proud today.",
+        "Congratulations. Not luck, not timing — you did the work and it shows.",
+        "This is the part where you stop and actually let it sink in. You did it.",
+        "So proud doesn't even cover it. Go celebrate like you mean it." ] }
+  };
+  const TYPE_ORDER = ['love','birthday','thankyou','roast','apology','appreciation','goodluck','congrats'];
+  const EXAMPLES = [
+    {type:'love', to:'Maya', from:'Theo'},
+    {type:'birthday', to:'Priya', from:'Dee'},
+    {type:'roast', to:'Sam', from:'Alex'},
+    {type:'apology', to:'Noah', from:'Ivy'},
+    {type:'congrats', to:'Zane', from:'Lily'},
+    {type:'goodluck', to:'Rae', from:'Kofi'}
+  ];
+  const COLORS = [
+    {name:'Pink', hex:'#ff6b8a'}, {name:'Blue', hex:'#5ec2e0'}, {name:'Purple', hex:'#a78bfa'},
+    {name:'Gold', hex:'#e8c168'}, {name:'Sunset', hex:'#ff8c5a'}, {name:'Galaxy', hex:'#7c6cff'}, {name:'Ocean', hex:'#3fb8b0'}
+  ];
+  const STYLES = ['Cute','Elegant','Funny','Romantic','Luxury','Minimal'];
+  const DECO_GLYPHS = ['✨','🌸','🎈','🌟','🍀','🔥','🌈','💫'];
+  const PAPERS = [
+    {name:'Cream', paper:'#faf3e6', ink:'#332a24'},
+    {name:'Blush', paper:'#fbe4ea', ink:'#4a2230'},
+    {name:'Sky', paper:'#e6f2fb', ink:'#1f3a4d'},
+    {name:'Lavender', paper:'#efe7fb', ink:'#3a2d52'},
+    {name:'Mint', paper:'#e8f5ec', ink:'#1f4630'},
+    {name:'Kraft', paper:'#e8dcc8', ink:'#3a2e1d'},
+    {name:'Midnight', paper:'#231a30', ink:'#f3e9d8'}
+  ];
+  const FONTS = [
+    {name:'Classic', family:"'Caveat', cursive", sample:'Dear you, this is Classic.'},
+    {name:'Flowing', family:"'Dancing Script', cursive", sample:'Dear you, this is Flowing.'},
+    {name:'Sweet', family:"'Homemade Apple', cursive", sample:'Dear you, this is Sweet.'},
+    {name:'Casual', family:"'Shadows Into Light', cursive", sample:'Dear you, this is Casual.'},
+    {name:'Friendly', family:"'Patrick Hand', cursive", sample:'Dear you, this is Friendly.'},
+    {name:'Playful', family:"'Kalam', cursive", sample:'Dear you, this is Playful.'}
+  ];
+  const PARTICLE_GLYPHS = {
+    heart:['❤️','💗','💕'], confetti:['🎈','🎊','🎉'], flower:['🌸','🌼','☀️'], fire:['🔥','✨'],
+    raintosun:['💧','☀️','✨'], gold:['✨','⭐','🌟'], star:['⭐','🍀','✨'], firework:['🎆','🎇','✨']
+  };
+  const FINALE_EMOJIS = ['😂','🖕','💀','🔥','😭','👑','💅','🤡','😈','🥲','💯','🙃'];
+
+  const BG_THEMES = {
+    love:        { glow:'255,60,120', glyphs:['❤️','💗','💕'], spiral:true },
+    birthday:    { glow:'255,157,77', glyphs:['🎈','🎊'], confetti:true },
+    thankyou:    { glow:'242,181,68', glyphs:['🌸','🌼'], rays:true },
+    roast:       { glow:'255,87,34', glyphs:['🔥'], embers:true },
+    apology:     { glow:'143,180,217', glyphs:['💧'], rain:true },
+    appreciation:{ glow:'232,193,104', glyphs:['✨','⭐'], twinkle:true },
+    goodluck:    { glow:'74,222,128', glyphs:['⭐','🍀'], twinkle:true, shootingStar:true },
+    congrats:    { glow:'255,209,102', glyphs:['🎆','🎇'], fireworks:true }
+  };
+
+  const el = id => document.getElementById(id);
+  const root = document.documentElement;
+  const screens = ['screen-landing','screen-builder-types','screen-builder-customize','screen-builder-review','screen-builder-success',
+    'screen-intro','screen-envelope','screen-sender','screen-letter','screen-candle','screen-reaction','screen-confirm'];
+
+  // Point this at your deployed backend. Override before this script runs by setting
+  // window.LITTLE_MOMENTS_API = 'https://your-backend.onrender.com' — e.g. in a
+  // small inline <script> tag placed above this one — so you don't have to edit
+  // this file itself per environment.
+  const CONFIG = { API_BASE: window.LITTLE_MOMENTS_API || 'http://localhost:3000' };
+
+  let state = {
+    type:'love', sender:'Alex', recipient:'Sam', message:'', messageEdited:false,
+    style:'Cute', color:null, decorations:['✨','🌸'], mode:'builder', noteId:'ab12cd', photos:[],
+    paper:null, font:FONTS[0], bigEmoji:null, remoteNoteId:null
+  };
+
+  /* ---------------- audio ---------------- */
+  let soundOn = true;
+  let videoAudioDest = null; // set while recording a video, so sounds get baked into the export
+  function ctxGet(){
+    if(!window._actx){ window._actx = new (window.AudioContext||window.webkitAudioContext)(); }
+    if(window._actx.state==='suspended'){ window._actx.resume(); }
+    return window._actx;
+  }
+  function tone(freq,start,dur,type,vol){
+    if(!soundOn && !videoAudioDest) return;
+    const ctx=ctxGet(); const t0=ctx.currentTime+start;
+    const osc=ctx.createOscillator(); osc.type=type||'sine'; osc.frequency.value=freq;
+    const gain=ctx.createGain(); gain.gain.setValueAtTime(0,t0);
+    gain.gain.linearRampToValueAtTime(vol||0.13,t0+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    osc.connect(gain);
+    if(soundOn) gain.connect(ctx.destination);
+    if(videoAudioDest) gain.connect(videoAudioDest);
+    osc.start(t0); osc.stop(t0+dur+0.05);
+  }
+  function noiseBurst(start,dur,filterFreq,vol,type){
+    if(!soundOn && !videoAudioDest) return;
+    const ctx=ctxGet(); const bufferSize=Math.floor(ctx.sampleRate*dur);
+    const buffer=ctx.createBuffer(1,bufferSize,ctx.sampleRate);
+    const data=buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){ data[i]=(Math.random()*2-1)*(1-i/bufferSize); }
+    const src=ctx.createBufferSource(); src.buffer=buffer;
+    const filter=ctx.createBiquadFilter(); filter.type=type||'bandpass'; filter.frequency.value=filterFreq||1200;
+    const gain=ctx.createGain(); gain.gain.value=vol||0.1;
+    src.connect(filter); filter.connect(gain);
+    if(soundOn) gain.connect(ctx.destination);
+    if(videoAudioDest) gain.connect(videoAudioDest);
+    src.start(ctx.currentTime+start);
+  }
+  const sound = {
+    crack: ()=> noiseBurst(0,0.1,2800,0.16,'bandpass'),
+    whoosh: ()=> noiseBurst(0.05,0.55,850,0.09,'lowpass'),
+    rustle: ()=> noiseBurst(0,0.4,3200,0.05,'highpass'),
+    pop: ()=> { tone(520,0,0.1,'sine',0.11); tone(720,0.04,0.09,'sine',0.07); },
+    tapSoft: ()=> tone(300,0,0.07,'sine',0.05),
+    chime: (mood)=>{
+      const sets = {
+        bright:[523.25,659.25,783.99,1046.5],
+        gentle:[392,466.16,587.33,659.25],
+        funny:[300,220,520,700]
+      };
+      const notes = sets[mood]||sets.bright;
+      notes.forEach((f,i)=> tone(f, i*0.1, 0.5,'triangle',0.085));
+    },
+    paySuccess: ()=> { [523.25,659.25,783.99].forEach((f,i)=> tone(f,i*0.09,0.4,'triangle',0.09)); }
+  };
+  document.addEventListener('pointerdown', ()=>{ try{ ctxGet(); }catch(e){} }, {once:true});
+  el('soundToggle').addEventListener('click', ()=>{
+    soundOn = !soundOn;
+    el('soundToggle').textContent = soundOn ? '🔊' : '🔇';
+  });
+
+  /* generic soft tap sound for any ordinary UI button/chip/card that doesn't already play its own sound */
+  const SOUND_SELECTOR = 'button, .chip, .color-chip, .paper-chip, .font-option, .type-card, ' +
+    '.example-card, .deco-add-btn, .back-btn, .photo-grid-add, .msg-option';
+  document.addEventListener('click', (e)=>{
+    const t = e.target.closest(SOUND_SELECTOR);
+    if(!t || t.hasAttribute('data-no-sound') || t.disabled) return;
+    sound.tapSoft();
+  });
+
+  function applyTheme(t, colorOverrideHex){
+    const th = THEMES[t];
+    const accent = colorOverrideHex || th.accentHex;
+    root.style.setProperty('--accent', accent);
+    root.style.setProperty('--accent-soft', th.accentSoft);
+    root.style.setProperty('--glow', hexToRgbStr(accent));
+    root.style.setProperty('--bg-a', th.bgA);
+    root.style.setProperty('--bg-b', th.bgB);
+    el('seal').textContent = th.emoji;
+    el('fromEmoji').textContent = th.emoji;
+    setBackgroundTheme(t);
+  }
+  function hexToRgbStr(hex){
+    const h = hex.replace('#','');
+    const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+    return r+','+g+','+b;
+  }
+  function applyPaper(p){
+    root.style.setProperty('--paper', p ? p.paper : '#faf3e6');
+    root.style.setProperty('--ink', p ? p.ink : '#332a24');
+  }
+  function applyFont(f){
+    root.style.setProperty('--hand-font', f.family);
+  }
+
+  function showScreen(id){ screens.forEach(s => el(s).classList.toggle('active', s===id)); }
+
+  function makeMotes(){
+    const wrap = el('motes'); wrap.innerHTML='';
+    for(let i=0;i<26;i++){
+      const m = document.createElement('div'); m.className='mote';
+      const size = 2 + Math.random()*3;
+      m.style.width=size+'px'; m.style.height=size+'px'; m.style.left=Math.random()*100+'vw';
+      m.style.setProperty('--dx', (Math.random()*60-30)+'px');
+      m.style.animationDuration = (10+Math.random()*14)+'s';
+      m.style.animationDelay = (Math.random()*14)+'s';
+      wrap.appendChild(m);
+    }
+  }
+
+  /* ---------------- live themed background (canvas) ---------------- */
+  const bgCanvas = el('bgCanvas');
+  const bgCtx = bgCanvas.getContext('2d');
+  let bgW=0, bgH=0, bgDpr=1, bgParticles=[], bgSpecialTimer=0, bgFireworkTimer=0, bgTime=0, bgCurrentType='love';
+
+  function resizeBgCanvas(){
+    bgDpr = Math.min(window.devicePixelRatio||1, 2);
+    bgW = window.innerWidth; bgH = window.innerHeight;
+    bgCanvas.width = bgW*bgDpr; bgCanvas.height = bgH*bgDpr;
+    bgCanvas.style.width = bgW+'px'; bgCanvas.style.height = bgH+'px';
+    bgCtx.setTransform(bgDpr,0,0,bgDpr,0,0);
+  }
+  window.addEventListener('resize', resizeBgCanvas);
+  resizeBgCanvas();
+
+  function setBackgroundTheme(t){ bgCurrentType = t; }
+
+  function spawnGlyph(cfg){
+    const glyph = cfg.glyphs[Math.floor(Math.random()*cfg.glyphs.length)];
+    bgParticles.push({
+      kind:'glyph', glyph, x:Math.random()*bgW, y:bgH+24,
+      vx:(Math.random()*16-8), vy:-(10+Math.random()*14),
+      size:14+Math.random()*14, life:0, maxLife:9+Math.random()*5,
+      sway:Math.random()*Math.PI*2
+    });
+  }
+  function spawnConfetti(){
+    const cols = ['#ff6b8a','#ffd166','#5ec2e0','#a78bfa','#4ade80'];
+    bgParticles.push({
+      kind:'confetti', x:Math.random()*bgW, y:-20, vx:(Math.random()*30-15), vy:20+Math.random()*18,
+      size:5+Math.random()*4, life:0, maxLife:9, rot:Math.random()*360, rotSpeed:(Math.random()*180-90),
+      color: cols[Math.floor(Math.random()*cols.length)]
+    });
+  }
+  function spawnRain(){
+    bgParticles.push({ kind:'rain', x:Math.random()*bgW, y:-10, vy:140+Math.random()*80, life:0, maxLife:6 });
+  }
+  function spawnEmber(){
+    bgParticles.push({
+      kind:'ember', x:Math.random()*bgW, y:bgH+10, vx:(Math.random()*14-7), vy:-(24+Math.random()*20),
+      size:2+Math.random()*3, life:0, maxLife:5+Math.random()*3, flicker:Math.random()*Math.PI*2
+    });
+  }
+  function spawnFirework(){
+    const cx = bgW*(0.2+Math.random()*0.6), cy = bgH*(0.18+Math.random()*0.3);
+    const n = 22, hue = Math.floor(Math.random()*360);
+    for(let i=0;i<n;i++){
+      const ang = (i/n)*Math.PI*2;
+      const spd = 70+Math.random()*60;
+      bgParticles.push({
+        kind:'spark', x:cx, y:cy, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd,
+        life:0, maxLife:1.1+Math.random()*0.4, color:`hsl(${hue},90%,65%)`
+      });
+    }
+  }
+  let bgStars = null;
+  function ensureStars(){
+    if(bgStars) return;
+    bgStars = [];
+    for(let i=0;i<60;i++){
+      bgStars.push({ x:Math.random(), y:Math.random()*0.7, size:1+Math.random()*1.8, phase:Math.random()*Math.PI*2 });
+    }
+  }
+  let bgShootTimer = 0;
+
+  function drawBackground(ts){
+    const dt = Math.min((ts - (drawBackground._last||ts))/1000, 0.05);
+    drawBackground._last = ts;
+    bgTime += dt;
+    bgCtx.clearRect(0,0,bgW,bgH);
+
+    const cfg = BG_THEMES[bgCurrentType] || BG_THEMES.love;
+
+    // spiral swirl (love) — glowing rotating galaxy, "moving and shining"
+    if(cfg.spiral){
+      const cx = bgW*0.5, cy = bgH*0.4;
+      bgCtx.save();
+      bgCtx.globalCompositeOperation = 'lighter';
+      const coreGrad = bgCtx.createRadialGradient(cx,cy,0,cx,cy,bgW*0.32);
+      coreGrad.addColorStop(0, 'rgba('+cfg.glow+',0.22)');
+      coreGrad.addColorStop(1, 'rgba('+cfg.glow+',0)');
+      bgCtx.fillStyle = coreGrad;
+      bgCtx.fillRect(0,0,bgW,bgH);
+      const arms = 2, dots = 70;
+      for(let a=0;a<arms;a++){
+        for(let i=0;i<dots;i++){
+          const p = i/dots;
+          const angle = p*Math.PI*4 + bgTime*0.35 + a*Math.PI;
+          const radius = p*bgW*0.42;
+          const x = cx + Math.cos(angle)*radius;
+          const y = cy + Math.sin(angle)*radius*0.62;
+          const alpha = (1-p)*0.55;
+          const size = 1.4 + (1-p)*2.4;
+          bgCtx.beginPath();
+          bgCtx.fillStyle = 'rgba('+cfg.glow+','+alpha.toFixed(3)+')';
+          bgCtx.arc(x,y,size,0,Math.PI*2);
+          bgCtx.fill();
+        }
+      }
+      bgCtx.restore();
+    }
+
+    // soft light rays (thank you)
+    if(cfg.rays){
+      bgCtx.save();
+      bgCtx.globalCompositeOperation = 'lighter';
+      const cx = bgW*0.5, cy = bgH*0.05;
+      for(let i=0;i<5;i++){
+        const angle = -0.6 + i*0.3 + Math.sin(bgTime*0.15+i)*0.05;
+        const grad = bgCtx.createLinearGradient(cx,cy,cx+Math.sin(angle)*bgH,cy+Math.cos(angle)*bgH);
+        grad.addColorStop(0,'rgba('+cfg.glow+',0.10)');
+        grad.addColorStop(1,'rgba('+cfg.glow+',0)');
+        bgCtx.save();
+        bgCtx.translate(cx,cy);
+        bgCtx.rotate(angle);
+        bgCtx.fillStyle = grad;
+        bgCtx.fillRect(-40,0,80,bgH*1.2);
+        bgCtx.restore();
+      }
+      bgCtx.restore();
+    }
+
+    // twinkle starfield (appreciation / good luck)
+    if(cfg.twinkle){
+      ensureStars();
+      bgStars.forEach(s=>{
+        const tw = 0.35 + 0.65*((Math.sin(bgTime*1.4 + s.phase)+1)/2);
+        bgCtx.beginPath();
+        bgCtx.fillStyle = 'rgba('+cfg.glow+','+tw.toFixed(3)+')';
+        bgCtx.arc(s.x*bgW, s.y*bgH, s.size, 0, Math.PI*2);
+        bgCtx.fill();
+      });
+    } else {
+      bgStars = null;
+    }
+
+    // shooting star (good luck)
+    if(cfg.shootingStar){
+      bgShootTimer += dt;
+      if(bgShootTimer > 4){
+        bgShootTimer = -1.2 - Math.random()*2; // schedule next + short streak duration window
+        bgParticles.push({ kind:'shoot', x:bgW*0.15, y:bgH*0.15, vx:bgW*0.9, vy:bgH*0.55, life:0, maxLife:0.7 });
+      }
+    }
+
+    // periodic emitters
+    bgSpecialTimer += dt;
+    const spawnEvery = 0.35;
+    if(bgSpecialTimer > spawnEvery){
+      bgSpecialTimer = 0;
+      if(cfg.glyphs && !cfg.spiral) spawnGlyph(cfg);
+      else if(cfg.spiral && Math.random()<0.5) spawnGlyph(cfg);
+      if(cfg.confetti) spawnConfetti();
+      if(cfg.rain) spawnRain();
+      if(cfg.embers) spawnEmber();
+    }
+    if(cfg.fireworks){
+      bgFireworkTimer += dt;
+      if(bgFireworkTimer > 2.2){ bgFireworkTimer = 0; spawnFirework(); }
+    }
+
+    // update + draw particles
+    bgCtx.textAlign = 'center'; bgCtx.textBaseline = 'middle';
+    bgParticles = bgParticles.filter(p=>{
+      p.life += dt;
+      if(p.life > p.maxLife) return false;
+      const lt = p.life/p.maxLife;
+      if(p.kind==='glyph'){
+        p.x += p.vx*dt + Math.sin(bgTime*1.2+p.sway)*6*dt;
+        p.y += p.vy*dt;
+        const alpha = lt<0.15 ? lt/0.15 : (lt>0.8 ? (1-lt)/0.2 : 1);
+        bgCtx.save();
+        bgCtx.globalAlpha = Math.max(0,alpha)*0.85;
+        bgCtx.font = p.size+'px sans-serif';
+        bgCtx.fillText(p.glyph, p.x, p.y);
+        bgCtx.restore();
+      } else if(p.kind==='confetti'){
+        p.x += p.vx*dt; p.y += p.vy*dt; p.rot += p.rotSpeed*dt;
+        const alpha = lt>0.8 ? (1-lt)/0.2 : 1;
+        bgCtx.save();
+        bgCtx.globalAlpha = Math.max(0,alpha);
+        bgCtx.translate(p.x,p.y); bgCtx.rotate(p.rot*Math.PI/180);
+        bgCtx.fillStyle = p.color;
+        bgCtx.fillRect(-p.size/2,-p.size/2,p.size,p.size*1.6);
+        bgCtx.restore();
+      } else if(p.kind==='rain'){
+        p.y += p.vy*dt;
+        bgCtx.save();
+        bgCtx.globalAlpha = 0.5;
+        bgCtx.strokeStyle = 'rgba('+cfg.glow+',0.6)';
+        bgCtx.lineWidth = 1.4;
+        bgCtx.beginPath(); bgCtx.moveTo(p.x,p.y); bgCtx.lineTo(p.x-2,p.y+14); bgCtx.stroke();
+        bgCtx.restore();
+      } else if(p.kind==='ember'){
+        p.x += p.vx*dt + Math.sin(bgTime*3+p.flicker)*10*dt;
+        p.y += p.vy*dt;
+        const alpha = lt>0.7 ? (1-lt)/0.3 : 1;
+        bgCtx.save();
+        bgCtx.globalCompositeOperation = 'lighter';
+        bgCtx.globalAlpha = Math.max(0,alpha)*0.8;
+        bgCtx.fillStyle = 'rgba(255,140,60,1)';
+        bgCtx.beginPath(); bgCtx.arc(p.x,p.y,p.size,0,Math.PI*2); bgCtx.fill();
+        bgCtx.restore();
+      } else if(p.kind==='spark'){
+        p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 60*dt;
+        const alpha = 1-lt;
+        bgCtx.save();
+        bgCtx.globalCompositeOperation = 'lighter';
+        bgCtx.globalAlpha = Math.max(0,alpha);
+        bgCtx.fillStyle = p.color;
+        bgCtx.beginPath(); bgCtx.arc(p.x,p.y,2.4,0,Math.PI*2); bgCtx.fill();
+        bgCtx.restore();
+      } else if(p.kind==='shoot'){
+        const x = p.x + p.vx*p.life, y = p.y + p.vy*p.life;
+        bgCtx.save();
+        bgCtx.globalCompositeOperation='lighter';
+        bgCtx.strokeStyle = 'rgba('+cfg.glow+',0.9)';
+        bgCtx.lineWidth = 2;
+        bgCtx.beginPath(); bgCtx.moveTo(x,y); bgCtx.lineTo(x-p.vx*0.06,y-p.vy*0.06); bgCtx.stroke();
+        bgCtx.restore();
+      }
+      return true;
+    });
+
+    requestAnimationFrame(drawBackground);
+  }
+  requestAnimationFrame(drawBackground);
+
+  function burstParticles(container, kind, count){
+    const glyphs = PARTICLE_GLYPHS[kind] || ['✨'];
+    const rect = container.getBoundingClientRect();
+    for(let i=0;i<count;i++){
+      const p = document.createElement('div'); p.className='particle';
+      p.textContent = glyphs[Math.floor(Math.random()*glyphs.length)];
+      const startX = 30 + Math.random()*(rect.width-60);
+      const drift = (Math.random()*140-70), rise = 160+Math.random()*220, rot=(Math.random()*80-40);
+      const dur = 1.6+Math.random()*1.6, delay = Math.random()*0.5, size = 14+Math.random()*14;
+      p.style.left=startX+'px'; p.style.top=(rect.height*0.55)+'px'; p.style.fontSize=size+'px'; p.style.opacity='0';
+      container.appendChild(p);
+      p.animate([
+        { transform:'translate(0,0) rotate(0deg)', opacity:0 },
+        { transform:`translate(${drift*0.3}px,${-rise*0.4}px) rotate(${rot*0.5}deg)`, opacity:1, offset:0.18 },
+        { transform:`translate(${drift}px,${-rise}px) rotate(${rot}deg)`, opacity:0 }
+      ], { duration:dur*1000, delay:delay*1000, easing:'cubic-bezier(.2,.7,.3,1)', fill:'forwards' });
+      setTimeout(()=>p.remove(), (dur+delay)*1000+100);
+    }
+  }
+
+  /* ---------------- builder: type grid ---------------- */
+  function renderTypeGrid(){
+    ['typeGrid','typeGridLanding'].forEach(gridId=>{
+      const grid = el(gridId); if(!grid) return;
+      grid.innerHTML='';
+      TYPE_ORDER.forEach(key=>{
+        const th = THEMES[key];
+        const card = document.createElement('div');
+        card.className = 'type-card' + (state.type===key ? ' selected':'');
+        card.innerHTML = `<div class="tc-glow" style="background:${th.accentHex}"></div>
+          <span class="tc-emo">${th.emoji}</span>
+          <div class="tc-name">${th.label}</div>
+          <div class="tc-tag">${th.tag}</div>`;
+        card.addEventListener('click', ()=>{
+          state.type = key;
+          if(!state.messageEdited){ state.message = th.msgs[0]; }
+          applyTheme(state.type, state.color);
+          goToCustomize();
+        });
+        grid.appendChild(card);
+      });
+    });
+  }
+
+  function renderExamplesMarquee(){
+    const track = el('examplesTrack'); if(!track) return;
+    track.innerHTML='';
+    const list = EXAMPLES.concat(EXAMPLES); // duplicate for seamless loop
+    list.forEach(ex=>{
+      const th = THEMES[ex.type];
+      const snippet = th.msgs[0].length > 68 ? th.msgs[0].slice(0,68).trim()+'…' : th.msgs[0];
+      const card = document.createElement('div');
+      card.className = 'example-card';
+      card.innerHTML = `<div class="ec-eyebrow" style="color:${th.accentHex}">${th.emoji} ${th.label}</div>
+        <div class="ec-greet">Dear ${ex.to},</div>
+        <div class="ec-body">${snippet}</div>
+        <div class="ec-sign">— ${ex.from}</div>`;
+      card.addEventListener('click', ()=>{
+        state.type = ex.type;
+        if(!state.messageEdited){ state.message = th.msgs[0]; }
+        applyTheme(state.type, state.color);
+        goToCustomize();
+      });
+      track.appendChild(card);
+    });
+    startMarquee(track);
+  }
+
+  function startMarquee(track){
+    const speed = 26; // px per second
+    let pos = 0, last = null, paused = false, halfWidth = 0;
+    function measure(){ halfWidth = track.scrollWidth / 2 || 1; }
+    measure();
+    window.addEventListener('resize', measure);
+    const wrap = track.parentElement;
+    ['pointerdown','mouseenter'].forEach(ev=> wrap.addEventListener(ev, ()=> paused = true));
+    ['pointerup','pointercancel','mouseleave'].forEach(ev=> wrap.addEventListener(ev, ()=> paused = false));
+    function frame(ts){
+      if(last===null) last = ts;
+      const dt = Math.min((ts-last)/1000, 0.05); // clamp to avoid huge jumps after tab was hidden
+      last = ts;
+      if(!paused){
+        pos -= speed*dt;
+        if(-pos >= halfWidth) pos += halfWidth;
+      }
+      track.style.transform = 'translateX('+pos+'px)';
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function goToCustomize(){
+    el('bRecipient').value = state.recipient;
+    el('bSender').value = state.sender;
+    el('bMessage').value = state.message;
+    el('custHeadline').textContent = 'Make it ' + THEMES[state.type].label.toLowerCase().replace(' note','') + '-perfect';
+    renderStyleChips(); renderColorChips(); renderDecoList(); renderPaperChips(); renderFontList();
+    renderPhotoGrid(); renderEmojiRow();
+    showScreen('screen-builder-customize');
+  }
+
+  /* ---------------- builder: customize ---------------- */
+  function renderStyleChips(){
+    const row = el('styleRow'); row.innerHTML='';
+    STYLES.forEach(s=>{
+      const c = document.createElement('div');
+      c.className = 'chip'+(state.style===s?' active':'');
+      c.textContent = s;
+      c.addEventListener('click', ()=>{ state.style=s; renderStyleChips(); });
+      row.appendChild(c);
+    });
+  }
+  function renderColorChips(){
+    const row = el('colorRow'); row.innerHTML='';
+    const themeDefault = document.createElement('div');
+    themeDefault.className = 'chip'+(!state.color?' active':'');
+    themeDefault.textContent = 'Theme default';
+    themeDefault.addEventListener('click', ()=>{ state.color=null; applyTheme(state.type,null); renderColorChips(); });
+    row.appendChild(themeDefault);
+    COLORS.forEach(c=>{
+      const dot = document.createElement('div');
+      dot.className = 'color-chip'+(state.color===c.hex?' active':'');
+      dot.style.background = c.hex; dot.title = c.name;
+      dot.addEventListener('click', ()=>{ state.color=c.hex; applyTheme(state.type,c.hex); renderColorChips(); });
+      row.appendChild(dot);
+    });
+  }
+  function renderPaperChips(){
+    const row = el('paperRow'); row.innerHTML='';
+    PAPERS.forEach(p=>{
+      const chip = document.createElement('div');
+      const isActive = state.paper ? state.paper.name===p.name : p.name==='Cream';
+      chip.className = 'paper-chip'+(isActive?' active':'');
+      chip.style.background = p.paper; chip.title = p.name;
+      chip.addEventListener('click', ()=>{ state.paper = p; applyPaper(p); renderPaperChips(); });
+      row.appendChild(chip);
+    });
+  }
+  function renderFontList(){
+    const list = el('fontList'); list.innerHTML='';
+    FONTS.forEach(f=>{
+      const opt = document.createElement('div');
+      opt.className = 'font-option'+(state.font.name===f.name?' active':'');
+      opt.innerHTML = `<div class="fo-label">${f.name}</div><div class="fo-sample" style="font-family:${f.family};">${f.sample}</div>`;
+      opt.addEventListener('click', ()=>{ state.font = f; applyFont(f); renderFontList(); });
+      list.appendChild(opt);
+    });
+  }
+  el('decoAddRow').innerHTML = DECO_GLYPHS.map(g=>`<div class="deco-add-btn" data-g="${g}">${g}</div>`).join('');
+  el('decoAddRow').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.deco-add-btn'); if(!btn) return;
+    if(state.decorations.length>=6) return;
+    state.decorations.push(btn.dataset.g);
+    renderDecoList();
+  });
+
+  function renderDecoList(){
+    const list = el('decoList'); list.innerHTML='';
+    state.decorations.forEach((g,idx)=>{
+      const item = document.createElement('div'); item.className='deco-item';
+      item.innerHTML = `<span class="deco-emo">${g}</span><span class="deco-hint">‹ swipe ›</span>`;
+      attachSwipe(item, {
+        onDelete: ()=>{ state.decorations.splice(idx,1); renderDecoList(); },
+        onDuplicate: ()=>{ state.decorations.splice(idx+1,0,g); renderDecoList(); }
+      });
+      list.appendChild(item);
+    });
+  }
+  function attachSwipe(node, {onDelete,onDuplicate}){
+    let startX=0, dx=0, dragging=false;
+    node.addEventListener('pointerdown', e=>{ dragging=true; startX=e.clientX; node.setPointerCapture(e.pointerId); node.style.transition='none'; });
+    node.addEventListener('pointermove', e=>{
+      if(!dragging) return;
+      dx = e.clientX-startX;
+      node.style.transform = `translateX(${dx}px)`;
+      node.style.opacity = String(1 - Math.min(Math.abs(dx)/220,0.6));
+    });
+    function end(){
+      if(!dragging) return;
+      dragging=false;
+      node.style.transition='transform .25s ease, opacity .25s ease';
+      if(dx < -60){ node.style.transform='translateX(-120%)'; node.style.opacity='0'; sound.tapSoft(); setTimeout(onDelete,180); }
+      else if(dx > 60){ sound.tapSoft(); node.style.transform='translateX(0)'; node.style.opacity='1'; onDuplicate(); }
+      else{ node.style.transform='translateX(0)'; node.style.opacity='1'; }
+      dx=0;
+    }
+    node.addEventListener('pointerup', end);
+    node.addEventListener('pointercancel', end);
+  }
+
+  function renderPhotoGrid(){
+    const grid = el('photoGrid'); grid.innerHTML='';
+    state.photos.forEach((src, idx)=>{
+      const item = document.createElement('div');
+      item.className = 'photo-grid-item';
+      item.innerHTML = `<img src="${src}" alt=""><button data-idx="${idx}" title="Remove">✕</button>`;
+      grid.appendChild(item);
+    });
+    if(state.photos.length < 5){
+      const addTile = document.createElement('label');
+      addTile.className = 'photo-grid-add';
+      addTile.textContent = '＋';
+      addTile.addEventListener('click', ()=> el('photoInput').click());
+      grid.appendChild(addTile);
+    }
+  }
+  el('photoGrid').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-idx]');
+    if(!btn) return;
+    state.photos.splice(parseInt(btn.dataset.idx,10), 1);
+    renderPhotoGrid();
+  });
+  el('photoInput').addEventListener('change', (e)=>{
+    const files = Array.from(e.target.files || []);
+    const remaining = 5 - state.photos.length;
+    const toAdd = files.slice(0, remaining);
+    if(!toAdd.length){ e.target.value=''; return; }
+    let loaded = 0;
+    toAdd.forEach(file=>{
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        state.photos.push(reader.result);
+        loaded++;
+        if(loaded === toAdd.length){ renderPhotoGrid(); }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value='';
+  });
+
+  function renderEmojiRow(){
+    const row = el('emojiRow'); row.innerHTML='';
+    const none = document.createElement('div');
+    none.className = 'chip'+(!state.bigEmoji?' active':'');
+    none.textContent = 'None';
+    none.addEventListener('click', ()=>{ state.bigEmoji=null; renderEmojiRow(); });
+    row.appendChild(none);
+    FINALE_EMOJIS.forEach(em=>{
+      const chip = document.createElement('div');
+      chip.className = 'chip emoji-chip'+(state.bigEmoji===em?' active':'');
+      chip.textContent = em;
+      chip.addEventListener('click', ()=>{ state.bigEmoji = em; renderEmojiRow(); });
+      row.appendChild(chip);
+    });
+  }
+
+  el('bRecipient').addEventListener('input', e=> state.recipient = e.target.value || 'Sam');
+  el('bSender').addEventListener('input', e=> state.sender = e.target.value || 'Alex');
+  el('bMessage').addEventListener('input', e=>{ state.message = e.target.value; state.messageEdited = true; });
+
+  function flashSave(toastEl){
+    toastEl.classList.add('show');
+    setTimeout(()=> toastEl.classList.remove('show'), 1400);
+  }
+  el('saveBtn2').addEventListener('click', ()=> flashSave(el('saveToast2')));
+  el('saveBtn3').addEventListener('click', ()=> flashSave(el('saveToast3')));
+
+  el('inspireBtn').addEventListener('click', ()=>{
+    const opts = el('msgOptions'); opts.innerHTML='';
+    THEMES[state.type].msgs.forEach(m=>{
+      const o = document.createElement('div'); o.className='msg-option'; o.textContent=m;
+      o.addEventListener('click', ()=>{
+        state.message = m; state.messageEdited = true; el('bMessage').value = m;
+        el('msgModal').classList.remove('show');
+      });
+      opts.appendChild(o);
+    });
+    el('msgModal').classList.add('show');
+  });
+  el('msgModalClose').addEventListener('click', ()=> el('msgModal').classList.remove('show'));
+
+  document.querySelectorAll('[data-back]').forEach(btn=>{
+    btn.addEventListener('click', ()=> showScreen(btn.dataset.back));
+  });
+
+  el('toReview').addEventListener('click', ()=>{
+    if(!state.message){ state.message = THEMES[state.type].msgs[0]; }
+    renderReview();
+    showScreen('screen-builder-review');
+  });
+
+  function buildPhotoCubes(containerId, animate){
+    const row = el(containerId); row.innerHTML='';
+    if(!state.photos.length){ row.style.display='none'; return; }
+    row.style.display='flex';
+    state.photos.forEach((src,i)=>{
+      const cube = document.createElement('div');
+      cube.className = 'photo-cube' + (animate ? '' : ' static');
+      cube.style.setProperty('--rot', (i%2===0?-4:4)+'deg');
+      cube.innerHTML = `<img src="${src}" alt="">`;
+      row.appendChild(cube);
+    });
+  }
+  function revealPhotoCubes(containerId){
+    const row = el(containerId);
+    Array.from(row.children).forEach((cube,i)=>{
+      setTimeout(()=>{ cube.classList.add('show'); sound.pop(); }, i*160);
+    });
+    return state.photos.length * 160 + 200;
+  }
+
+  function renderReview(){
+    applyPaper(state.paper); applyFont(state.font);
+    buildPhotoCubes('mlPhotoRow', false);
+    if(state.bigEmoji){ el('mlFinaleEmoji').textContent = state.bigEmoji; el('mlFinaleEmoji').classList.add('show'); }
+    else{ el('mlFinaleEmoji').classList.remove('show'); el('mlFinaleEmoji').textContent=''; }
+    el('mlDeco').textContent = state.decorations.join(' ');
+    el('mlGreet').textContent = 'Dear '+state.recipient+',';
+    el('mlBody').textContent = state.message;
+    el('mlSign').textContent = '— '+state.sender;
+  }
+
+  el('previewFullBtn').addEventListener('click', ()=>{ state.mode='previewing'; runReveal(); });
+  el('previewFromSuccess').addEventListener('click', ()=>{ state.mode='delivered'; runReveal(); });
+
+  el('payBtn').addEventListener('click', async function(){
+    if(this.classList.contains('loading')) return;
+    const errEl = el('payError');
+    errEl.style.display = 'none';
+    const email = el('senderEmail').value.trim();
+    if(!email || !email.includes('@')){
+      errEl.textContent = 'Enter a valid email first — Paystack needs it for the receipt.';
+      errEl.style.display = 'block';
+      return;
+    }
+    this.classList.add('loading');
+    try{
+      const payload = {
+        email,
+        type: state.type, sender: state.sender, recipient: state.recipient, message: state.message,
+        style: state.style, color: state.color, decorations: state.decorations, photos: state.photos,
+        paper: state.paper, font: state.font, bigEmoji: state.bigEmoji
+      };
+      const res = await fetch(CONFIG.API_BASE + '/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || 'Could not start payment.');
+      // Hand off to Paystack's real hosted checkout. The browser leaves this
+      // page entirely and comes back via the backend once payment is verified.
+      window.location.href = data.authorizationUrl;
+    }catch(err){
+      this.classList.remove('loading');
+      errEl.textContent = "Couldn't reach the payment server — is the backend running at " + CONFIG.API_BASE + '? (' + err.message + ')';
+      errEl.style.display = 'block';
+    }
+  });
+
+  el('copyLinkBtn').addEventListener('click', ()=>{
+    const text = 'https://'+el('fakeLink').textContent;
+    if(navigator.clipboard){ navigator.clipboard.writeText(text).catch(()=>{}); }
+    el('copyLinkBtn').textContent='Copied';
+    setTimeout(()=> el('copyLinkBtn').textContent='Copy', 1400);
+  });
+  el('waShareBtn').addEventListener('click', ()=>{
+    const text = encodeURIComponent('Someone made you a little moment ✨ https://'+el('fakeLink').textContent);
+    window.open('https://wa.me/?text='+text, '_blank');
+  });
+  el('qrBtn').addEventListener('click', ()=>{
+    el('qrBtn').querySelector('.sr-icon').textContent='✓';
+    setTimeout(()=> el('qrBtn').querySelector('.sr-icon').textContent='▦', 1200);
+  });
+
+  el('createAnotherBtn').addEventListener('click', ()=>{
+    state = { type:'love', sender:'Alex', recipient:'Sam', message:'', messageEdited:false,
+      style:'Cute', color:null, decorations:['✨','🌸'], mode:'builder', noteId:'ab12cd', photos:[],
+      paper:null, font:FONTS[0], bigEmoji:null };
+    el('photoInput').value='';
+    applyTheme('love', null);
+    applyPaper(null); applyFont(FONTS[0]);
+    renderTypeGrid();
+    showScreen('screen-builder-types');
+  });
+
+  el('btnCreateNote').addEventListener('click', ()=> showScreen('screen-builder-types'));
+  el('btnCreateNote2').addEventListener('click', ()=> showScreen('screen-builder-types'));
+  el('btnSeeExamples').addEventListener('click', ()=>{
+    el('landingExamples').scrollIntoView({ behavior:'smooth', block:'start' });
+  });
+
+  /* ---------------- reveal (receiver side) ---------------- */
+  function resetEnvelope(){
+    el('envelopeScene').classList.remove('opened');
+    el('envFlap').classList.remove('open');
+    el('seal').classList.remove('cracked');
+    el('glowBurst').classList.remove('burst');
+    el('envHint').style.opacity='1';
+  }
+  function runReveal(){
+    stopCandleMic();
+    applyTheme(state.type, state.color);
+    applyPaper(state.paper); applyFont(state.font);
+    resetEnvelope();
+    el('letterCard').classList.remove('unfolded');
+    el('letterBody').innerHTML='';
+    el('letterDeco').textContent = state.decorations.join(' ');
+    buildPhotoCubes('letterPhotoRow', true);
+    el('finaleEmoji').classList.remove('show');
+    el('finaleEmoji').textContent = state.bigEmoji || '';
+    el('letterHint').classList.remove('show');
+    el('celebrationLayer').innerHTML='';
+    document.querySelectorAll('.react-btn').forEach(b=>{ b.classList.remove('picked'); b.disabled=false; });
+    showScreen('screen-intro');
+  }
+
+  el('screen-intro').addEventListener('click', ()=> showScreen('screen-envelope'));
+
+  el('envelopeScene').addEventListener('click', function(){
+    if(this.classList.contains('opened')) return;
+    this.classList.add('opened');
+    sound.crack(); sound.whoosh();
+    el('seal').classList.add('cracked');
+    el('glowBurst').classList.add('burst');
+    el('envFlap').classList.add('open');
+    el('envHint').style.opacity='0';
+    setTimeout(()=>{ el('fromName').textContent = state.sender; showScreen('screen-sender'); }, 1100);
+  });
+
+  el('screen-sender').addEventListener('click', ()=> goToLetter());
+
+  function goToLetter(){
+    el('letterGreeting').textContent = 'Dear '+state.recipient+',';
+    el('letterSign').textContent = '— '+state.sender;
+    showScreen('screen-letter');
+    sound.rustle();
+    setTimeout(()=>{ el('letterCard').classList.add('unfolded'); setTimeout(typeLetter, 650); }, 150);
+  }
+
+  function typeLetter(){
+    const body = el('letterBody'); body.innerHTML='';
+    const words = state.message.split(' ');
+    words.forEach((w,i)=>{
+      const span = document.createElement('span'); span.className='word';
+      span.textContent = w + (i<words.length-1?' ':'');
+      body.appendChild(span);
+      setTimeout(()=>span.classList.add('show'), i*70);
+    });
+    const totalDelay = words.length*70 + 500;
+    setTimeout(()=>{
+      const th = THEMES[state.type];
+      burstParticles(el('celebrationLayer'), th.particle, 22);
+      sound.chime(th.mood);
+      let extraDelay = 350;
+      if(state.photos.length){
+        setTimeout(()=>{ extraDelay += revealPhotoCubes('letterPhotoRow'); }, 350);
+        extraDelay += state.photos.length*160 + 200;
+      }
+      if(state.bigEmoji){
+        setTimeout(()=>{
+          el('finaleEmoji').classList.add('show');
+          sound.chime(th.mood==='funny' ? 'funny' : 'bright');
+        }, extraDelay + 250);
+      }
+      el('letterHint').classList.add('show');
+    }, totalDelay);
+  }
+
+  el('screen-letter').addEventListener('click', ()=>{
+    if(!el('letterHint').classList.contains('show')) return;
+    if(state.type==='birthday'){ showScreen('screen-candle'); startCandleScreen(); }
+    else{ showScreen('screen-reaction'); }
+  });
+
+  /* ---------------- birthday candle blow-out ---------------- */
+  let candleStream = null, candleRAF = null, candleActive = false;
+
+  function startCandleScreen(){
+    candleActive = false;
+    el('flameWrap').classList.remove('out');
+    el('flameWrap').style.setProperty('--sway','0');
+    el('smokeWrap').innerHTML = '';
+    el('candleStatus').classList.remove('strong');
+    el('candleStatus').textContent = 'Blow into your mic to blow out the candle';
+    el('candleMicBtn').style.display = 'inline-block';
+    el('candleMicBtn').disabled = false;
+    el('candleMicBtn').textContent = '🎙️ Use my mic';
+  }
+
+  async function attemptCandleMic(){
+    const btn = el('candleMicBtn');
+    btn.disabled = true; btn.textContent = 'Listening...';
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      candleStream = stream;
+      candleActive = true;
+      const actx = ctxGet();
+      const source = actx.createMediaStreamSource(stream);
+      const analyser = actx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.fftSize);
+      let baseline = 0.015, calibrated = false, calibStart = performance.now();
+      let strongStart = null;
+      el('candleStatus').textContent = 'Blow gently, then blow harder to put it out';
+      function loop(){
+        if(!candleActive) return;
+        analyser.getByteTimeDomainData(data);
+        let sum=0;
+        for(let i=0;i<data.length;i++){ const v=(data[i]-128)/128; sum+=v*v; }
+        const rms = Math.sqrt(sum/data.length);
+        const now = performance.now();
+        if(!calibrated){
+          baseline = Math.max(baseline, rms);
+          if(now-calibStart>500) calibrated = true;
+        } else {
+          const swayThresh = baseline+0.05, blowThresh = baseline+0.20;
+          const sway = Math.max(0, Math.min(1, (rms-swayThresh)/(blowThresh-swayThresh)));
+          el('flameWrap').style.setProperty('--sway', sway.toFixed(2));
+          if(rms > blowThresh){
+            el('candleStatus').classList.add('strong');
+            el('candleStatus').textContent = 'Keep blowing...';
+            if(strongStart===null) strongStart = now;
+            if(now-strongStart > 200){ extinguishCandle(); return; }
+          } else {
+            strongStart = null;
+            el('candleStatus').classList.remove('strong');
+            el('candleStatus').textContent = sway>0.05 ? 'The flame is flickering...' : 'Blow gently, then blow harder to put it out';
+          }
+        }
+        candleRAF = requestAnimationFrame(loop);
+      }
+      candleRAF = requestAnimationFrame(loop);
+    }catch(e){
+      el('candleStatus').textContent = "Couldn't access your mic — tap below to blow it out instead";
+      btn.style.display = 'none';
+    }
+  }
+
+  function stopCandleMic(){
+    candleActive = false;
+    if(candleRAF){ cancelAnimationFrame(candleRAF); candleRAF = null; }
+    if(candleStream){ candleStream.getTracks().forEach(t=>t.stop()); candleStream = null; }
+  }
+
+  function spawnSmoke(){
+    const wrap = el('smokeWrap');
+    for(let i=0;i<3;i++){
+      const puff = document.createElement('div');
+      puff.className = 'smoke-puff';
+      puff.style.left = (Math.random()*10-5)+'px';
+      puff.style.animationDelay = (i*0.12)+'s';
+      wrap.appendChild(puff);
+    }
+    setTimeout(()=>{ wrap.innerHTML=''; }, 1700);
+  }
+
+  function proceedFromCandle(){ showScreen('screen-reaction'); }
+
+  function extinguishCandle(){
+    stopCandleMic();
+    el('flameWrap').classList.add('out');
+    sound.whoosh();
+    spawnSmoke();
+    el('candleStatus').classList.remove('strong');
+    el('candleStatus').textContent = '🎉 Nicely blown out!';
+    el('candleMicBtn').style.display = 'none';
+    setTimeout(proceedFromCandle, 1300);
+  }
+
+  el('candleMicBtn').addEventListener('click', attemptCandleMic);
+  el('candleFallbackBtn').addEventListener('click', ()=> extinguishCandle());
+  el('candleSkipBtn').addEventListener('click', ()=>{ stopCandleMic(); proceedFromCandle(); });
+
+  const REACT_LABELS = {
+    loved:'loved it', laugh:'made them laugh', day:'made their day', beautiful:'found it beautiful',
+    amazing:'thought it was amazing', sad:'felt sad', disappointed:'felt disappointed', angry:'felt angry', dontcare:"didn't feel much"
+  };
+  document.querySelectorAll('.react-btn').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.react-btn').forEach(b=> b.disabled=true);
+      this.classList.add('picked');
+      sound.pop();
+      const key = this.dataset.r;
+      if(state.remoteNoteId){
+        fetch(CONFIG.API_BASE + '/api/notes/' + state.remoteNoteId + '/reaction', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reaction: key })
+        }).catch(()=>{ /* best-effort — the recipient's local UI still confirms either way */ });
+      }
+      setTimeout(()=>{
+        const negative = ['sad','disappointed','angry','dontcare'].includes(key);
+        el('confirmEmoji').textContent = negative ? '💌' : '💌';
+        el('confirmHeading').textContent = negative ? 'Feedback sent' : 'Sent';
+        el('confirmText').textContent = state.sender+' will see that this '+REACT_LABELS[key]+'.';
+        showScreen('screen-confirm');
+      }, 700);
+    });
+  });
+
+  /* ---------------- keepsake image ---------------- */
+  function loadImg(src){
+    return new Promise((resolve,reject)=>{
+      const img = new Image();
+      img.onload = ()=> resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+  function wrapLines(ctx, text, maxWidth){
+    const words = text.split(' ');
+    const lines = []; let line = '';
+    words.forEach(w=>{
+      const test = line ? line+' '+w : w;
+      if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line = w; }
+      else{ line = test; }
+    });
+    if(line) lines.push(line);
+    return lines;
+  }
+  async function generateKeepsake(){
+    const paperHex = state.paper ? state.paper.paper : '#faf3e6';
+    const inkHex = state.paper ? state.paper.ink : '#332a24';
+    const fontFamily = state.font.family; // e.g. "'Dancing Script', cursive"
+    const fontLoadName = fontFamily.split(',')[0].trim();
+    try{
+      await document.fonts.load("48px "+fontLoadName);
+      await document.fonts.load("30px "+fontLoadName);
+      await document.fonts.load("30px Inter");
+    }catch(e){}
+    const th = THEMES[state.type];
+    const accent = state.color || th.accentHex;
+    const W = 900, H = 1250;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    const bgGrad = ctx.createLinearGradient(0,0,W,H);
+    bgGrad.addColorStop(0, th.bgA); bgGrad.addColorStop(1, th.bgB);
+    ctx.fillStyle = bgGrad; ctx.fillRect(0,0,W,H);
+
+    const pad = 46;
+    const cardX = pad, cardY = pad, cardW = W-pad*2, cardH = H-pad*2;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 60; ctx.shadowOffsetY = 20;
+    roundRect(ctx, cardX, cardY, cardW, cardH, 18);
+    ctx.fillStyle = paperHex; ctx.fill();
+    ctx.restore();
+
+    let cursorY = cardY + 70;
+    const innerX = cardX + 56, innerW = cardW - 112;
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = accent;
+    ctx.font = "600 22px 'Inter', sans-serif";
+    ctx.fillText((th.label).toUpperCase(), innerX, cursorY);
+    cursorY += 20;
+    ctx.strokeStyle = accent; ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(innerX, cursorY); ctx.lineTo(innerX+70, cursorY); ctx.stroke();
+    ctx.globalAlpha = 1;
+    cursorY += 40;
+
+    if(state.decorations && state.decorations.length){
+      ctx.font = "34px 'Inter', sans-serif";
+      ctx.fillStyle = inkHex;
+      ctx.fillText(state.decorations.join('  '), innerX, cursorY);
+      cursorY += 44;
+    }
+
+    ctx.fillStyle = inkHex;
+    ctx.font = "600 42px "+fontFamily;
+    ctx.fillText('Dear '+state.recipient+',', innerX, cursorY);
+    cursorY += 54;
+
+    const perRow = Math.min(3, state.photos.length);
+    const photoRows = perRow ? Math.ceil(state.photos.length/perRow) : 0;
+    const cubeSize = perRow ? Math.min(190, (innerW - 14*(perRow-1))/perRow) : 0;
+    const photoBlockH = photoRows ? photoRows*(cubeSize+34) : 0;
+    const emojiBlockH = state.bigEmoji ? 130 : 0;
+    const maxBodyBottom = cardY+cardH-150-photoBlockH-emojiBlockH;
+    ctx.font = "36px "+fontFamily;
+    let lines = wrapLines(ctx, state.message, innerW);
+    let activeLineH = 44;
+    if(cursorY + lines.length*activeLineH > maxBodyBottom){
+      ctx.font = "28px "+fontFamily;
+      lines = wrapLines(ctx, state.message, innerW);
+      activeLineH = 36;
+    }
+    lines.forEach(l=>{ ctx.fillText(l, innerX, cursorY); cursorY += activeLineH; });
+
+    if(state.photos.length){
+      cursorY += 24;
+      for(let r=0; r<photoRows; r++){
+        const rowItems = state.photos.slice(r*perRow, r*perRow+perRow);
+        const rowW = rowItems.length*cubeSize + (rowItems.length-1)*14;
+        let x = innerX + (innerW-rowW)/2 + cubeSize/2;
+        const cy = cursorY + cubeSize/2;
+        for(const src of rowItems){
+          try{
+            const img = await loadImg(src);
+            ctx.save();
+            ctx.translate(x, cy);
+            ctx.rotate((x%2===0?-1:1) * 3 * Math.PI/180);
+            ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 9;
+            roundRect(ctx, -cubeSize/2-7, -cubeSize/2-7, cubeSize+14, cubeSize+24, 9);
+            ctx.fillStyle = '#ffffff'; ctx.fill();
+            ctx.shadowColor = 'transparent';
+            // photo, cropped to a full-quality square (cover-fit, native resolution, no lossy compression)
+            roundRect(ctx, -cubeSize/2, -cubeSize/2, cubeSize, cubeSize, 6);
+            ctx.save(); ctx.clip();
+            const scale = Math.max(cubeSize/img.width, cubeSize/img.height);
+            const dw = img.width*scale, dh = img.height*scale;
+            ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+            ctx.restore();
+            ctx.restore();
+          }catch(e){}
+          x += cubeSize+14;
+        }
+        cursorY += cubeSize+34;
+      }
+    }
+
+    if(state.bigEmoji){
+      ctx.textAlign = 'center';
+      ctx.font = "90px sans-serif";
+      ctx.fillText(state.bigEmoji, cardX+cardW/2, cursorY+70);
+      cursorY += 110;
+      ctx.textAlign = 'left';
+    }
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = accent;
+    ctx.font = "italic 600 38px "+fontFamily;
+    ctx.fillText('— '+state.sender, innerX+innerW, cardY+cardH-90);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba('+hexToRgbStr(inkHex)+',0.4)';
+    ctx.font = "500 20px 'Inter', sans-serif";
+    ctx.fillText('✨ made with Little Moments', cardX+cardW/2, cardY+cardH-40);
+
+    return canvas;
+  }
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+  async function downloadKeepsake(btn){
+    const original = btn.textContent;
+    btn.textContent = 'Preparing image...';
+    try{
+      const canvas = await generateKeepsake();
+      const link = document.createElement('a');
+      link.download = 'little-moment-'+(state.recipient||'note').toLowerCase().replace(/\s+/g,'-')+'.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      btn.textContent = 'Saved ✓';
+      btn.classList.add('done');
+      sound.tapSoft();
+    }catch(e){
+      btn.textContent = 'Could not save';
+    }
+    setTimeout(()=>{ btn.textContent = original; btn.classList.remove('done'); }, 1800);
+  }
+  el('keepsakeBtnConfirm').addEventListener('click', ()=> downloadKeepsake(el('keepsakeBtnConfirm')));
+  el('keepsakeBtnSuccess').addEventListener('click', ()=> downloadKeepsake(el('keepsakeBtnSuccess')));
+
+  /* ---------------- 5-second video export ---------------- */
+  function ease(t){ return 1 - Math.pow(1-t, 3); }
+  function clamp01(v){ return Math.max(0, Math.min(1, v)); }
+
+  let videoGenerating = false;
+  async function generateVideo(){
+    if(videoGenerating) return;
+    const btn = el('videoBtn');
+    const original = btn.textContent;
+
+    if(!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream){
+      btn.textContent = "Video isn't supported on this browser";
+      setTimeout(()=> btn.textContent = original, 2400);
+      return;
+    }
+
+    videoGenerating = true;
+    btn.textContent = 'Rendering video...';
+    btn.disabled = true;
+
+    const canvas = el('videoCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const SCALE = W/640; // design baseline was 640px wide — scale every fixed pixel value up with resolution
+    const S = v => v*SCALE;
+
+    const paperHex = state.paper ? state.paper.paper : '#faf3e6';
+    const inkHex = state.paper ? state.paper.ink : '#332a24';
+    const th = THEMES[state.type];
+    const accent = state.color || th.accentHex;
+    const fontFamily = state.font.family;
+    const fontLoadName = fontFamily.split(',')[0].trim();
+    try{
+      await document.fonts.load(Math.round(S(30))+"px "+fontLoadName);
+      await document.fonts.load(Math.round(S(24))+"px "+fontLoadName);
+      await document.fonts.load(Math.round(S(20))+"px Inter");
+    }catch(e){}
+
+    const photoImgs = [];
+    for(const src of state.photos.slice(0,5)){
+      try{ photoImgs.push(await loadImg(src)); }catch(e){}
+    }
+
+    const bgGrad = ctx.createLinearGradient(0,0,W,H);
+    bgGrad.addColorStop(0, th.bgA); bgGrad.addColorStop(1, th.bgB);
+
+    // adaptive length: more photos / a finale emoji earn a longer clip, clamped to 5–10s
+    const T_ENVELOPE_OPEN = 1500;
+    const T_LETTER_HOLD = 2200;
+    const T_PHOTOS_IN = T_ENVELOPE_OPEN + T_LETTER_HOLD;
+    const photoSeq = photoImgs.length ? 350 + photoImgs.length*420 : 0;
+    const T_FINALE = T_PHOTOS_IN + photoSeq + 200;
+    const finaleHold = state.bigEmoji ? 1600 : 700;
+    const DURATION = Math.max(5000, Math.min(10000, T_FINALE + finaleHold));
+
+    let recorder, chunks = [], finished;
+    let audioDest = null;
+    try{
+      const actx = ctxGet();
+      audioDest = actx.createMediaStreamDestination();
+      const videoTrack = canvas.captureStream(30).getVideoTracks()[0];
+      const combined = new MediaStream([videoTrack, ...audioDest.stream.getAudioTracks()]);
+      const mimeCandidates = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+      const mimeType = mimeCandidates.find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m));
+      const opts = { videoBitsPerSecond: 6000000, audioBitsPerSecond: 128000 };
+      if(mimeType) opts.mimeType = mimeType;
+      recorder = new MediaRecorder(combined, opts);
+    }catch(e){
+      btn.textContent = "Video isn't supported on this browser";
+      btn.disabled = false;
+      videoGenerating = false;
+      setTimeout(()=> btn.textContent = original, 2400);
+      return;
+    }
+    recorder.ondataavailable = e=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+    finished = new Promise(resolve=>{
+      recorder.onstop = ()=>{
+        const blob = new Blob(chunks, {type:'video/webm'});
+        const url = URL.createObjectURL(blob);
+        el('videoPreview').src = url;
+        el('videoDownloadLink').href = url;
+        el('videoDownloadLink').download = 'little-moment-'+(state.recipient||'note').toLowerCase().replace(/\s+/g,'-')+'.webm';
+        el('videoResult').style.display = 'block';
+        el('videoPreview').play().catch(()=>{});
+        resolve();
+      };
+    });
+
+    videoAudioDest = audioDest;
+    recorder.start();
+    const startTime = performance.now();
+
+    // bake the sound effects into the recording, timed to match the visuals
+    setTimeout(()=> sound.crack(), Math.max(0, T_ENVELOPE_OPEN-500));
+    setTimeout(()=> sound.whoosh(), Math.max(0, T_ENVELOPE_OPEN-450));
+    setTimeout(()=> sound.rustle(), T_ENVELOPE_OPEN+60);
+    setTimeout(()=> sound.chime(th.mood), T_PHOTOS_IN-150);
+    photoImgs.forEach((_,i)=>{
+      setTimeout(()=> sound.pop(), T_PHOTOS_IN + i*420 + 250);
+    });
+    if(state.bigEmoji){
+      setTimeout(()=> sound.chime(th.mood==='funny' ? 'funny' : 'bright'), T_FINALE+150);
+    }
+
+    function drawFrame(now){
+      const t = now - startTime;
+      ctx.fillStyle = bgGrad; ctx.fillRect(0,0,W,H);
+
+      if(t < T_ENVELOPE_OPEN){
+        const inT = clamp01(t/500);
+        const outT = clamp01((T_ENVELOPE_OPEN - t)/300);
+        const scale = 0.7 + 0.3*ease(inT);
+        ctx.save();
+        ctx.globalAlpha = t > T_ENVELOPE_OPEN-300 ? outT : inT;
+        ctx.translate(W/2, H*0.36); ctx.scale(scale, scale);
+        ctx.font = Math.round(S(140))+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.shadowColor = accent; ctx.shadowBlur = S(40);
+        ctx.fillText('💌', 0, 0);
+        ctx.restore();
+
+        ctx.globalAlpha = clamp01(inT);
+        ctx.fillStyle = '#fff'; ctx.textAlign='center';
+        ctx.font = "600 "+Math.round(S(30))+"px 'Inter', sans-serif";
+        ctx.fillText('Someone made something', W/2, H*0.6);
+        ctx.fillText('special for you...', W/2, H*0.64);
+        ctx.globalAlpha = 1;
+      } else if(t < T_PHOTOS_IN){
+        const inT = ease(clamp01((t-T_ENVELOPE_OPEN)/450));
+        const cardW = W*0.8, cardH = H*0.5, cardX=(W-cardW)/2, cardY=H*0.22;
+        ctx.save();
+        ctx.globalAlpha = inT;
+        ctx.translate(0,(1-inT)*S(40));
+        roundRect(ctx, cardX, cardY, cardW, cardH, S(16));
+        ctx.shadowColor='rgba(0,0,0,0.4)'; ctx.shadowBlur=S(40); ctx.shadowOffsetY=S(16);
+        ctx.fillStyle = paperHex; ctx.fill(); ctx.shadowColor='transparent';
+        ctx.fillStyle = accent; ctx.textAlign='left';
+        ctx.font = "600 "+Math.round(S(16))+"px 'Inter', sans-serif";
+        ctx.fillText(th.label.toUpperCase(), cardX+S(34), cardY+S(50));
+        ctx.fillStyle = inkHex; ctx.font = "600 "+Math.round(S(28))+"px "+fontFamily;
+        ctx.fillText('Dear '+state.recipient+',', cardX+S(34), cardY+S(98));
+        ctx.font = Math.round(S(22))+"px "+fontFamily;
+        wrapLines(ctx, state.message, cardW-S(68)).slice(0,4).forEach((l,i)=> ctx.fillText(l, cardX+S(34), cardY+S(138)+i*S(30)));
+        ctx.textAlign='right'; ctx.font = "italic 600 "+Math.round(S(24))+"px "+fontFamily; ctx.fillStyle = accent;
+        ctx.fillText('— '+state.sender, cardX+cardW-S(34), cardY+cardH-S(28));
+        ctx.restore();
+      } else {
+        const cardW = W*0.8, cardH = H*0.46, cardX=(W-cardW)/2, cardY=H*0.1;
+        roundRect(ctx, cardX, cardY, cardW, cardH, S(16));
+        ctx.fillStyle = paperHex; ctx.fill();
+        ctx.fillStyle = accent; ctx.textAlign='left';
+        ctx.font = "600 "+Math.round(S(15))+"px 'Inter', sans-serif";
+        ctx.fillText(th.label.toUpperCase(), cardX+S(30), cardY+S(46));
+        ctx.fillStyle = inkHex; ctx.font = "600 "+Math.round(S(24))+"px "+fontFamily;
+        ctx.fillText('Dear '+state.recipient+',', cardX+S(30), cardY+S(84));
+        ctx.font = Math.round(S(18))+"px "+fontFamily;
+        wrapLines(ctx, state.message, cardW-S(60)).slice(0,3).forEach((l,i)=> ctx.fillText(l, cardX+S(30), cardY+S(116)+i*S(24)));
+
+        if(photoImgs.length){
+          const pIn = ease(clamp01((t-T_PHOTOS_IN)/450));
+          const size = S(84), n = photoImgs.length;
+          const rowW = n*size+(n-1)*S(12);
+          let x = W/2 - rowW/2 + size/2;
+          const y = cardY+cardH+S(66);
+          photoImgs.forEach((img,i)=>{
+            ctx.save();
+            ctx.globalAlpha = pIn;
+            ctx.translate(x,y); ctx.scale(0.5+0.5*pIn, 0.5+0.5*pIn);
+            ctx.rotate((i%2===0?-4:4)*Math.PI/180);
+            ctx.fillStyle='#fff';
+            roundRect(ctx,-size/2-S(5),-size/2-S(5),size+S(10),size+S(16),S(7)); ctx.fill();
+            roundRect(ctx,-size/2,-size/2,size,size,S(4));
+            ctx.save(); ctx.clip();
+            const sc = Math.max(size/img.width, size/img.height);
+            ctx.drawImage(img, -img.width*sc/2, -img.height*sc/2, img.width*sc, img.height*sc);
+            ctx.restore(); ctx.restore();
+            x += size+S(12);
+          });
+        }
+
+        if(state.bigEmoji && t > T_FINALE){
+          const fIn = ease(clamp01((t-T_FINALE)/400));
+          ctx.save();
+          ctx.globalAlpha = fIn;
+          ctx.translate(W/2, H*0.9);
+          ctx.scale(0.4+0.6*fIn, 0.4+0.6*fIn);
+          ctx.font = Math.round(S(150))+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText(state.bigEmoji, 0, 0);
+          ctx.restore();
+        }
+      }
+
+      ctx.textAlign='center'; ctx.fillStyle='rgba(255,255,255,0.35)';
+      ctx.font = "500 "+Math.round(S(15))+"px 'Inter', sans-serif";
+      ctx.fillText('✨ Little Moments', W/2, H-S(26));
+
+      if(t < DURATION){ requestAnimationFrame(drawFrame); }
+      else{ recorder.stop(); }
+    }
+    requestAnimationFrame(drawFrame);
+
+    await finished;
+    videoAudioDest = null;
+    videoGenerating = false;
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+  el('videoBtn').addEventListener('click', generateVideo);
+
+  el('replayBtn').addEventListener('click', runReveal);
+  el('continueBtn').addEventListener('click', ()=>{
+    if(state.mode==='previewing'){ showScreen('screen-builder-review'); }
+    else if(state.mode==='delivered'){ showScreen('screen-builder-success'); }
+    else{ showScreen('screen-builder-types'); }
+  });
+
+  
+
+  /* ---------------- boot: figure out why this page was opened ---------------- */
+  // Three ways someone can land here:
+  //  1. ?id=XXXX        — a real recipient opening a shared note link
+  //  2. ?noteId=XXXX&paid=1 — bounced back here by the backend after a real payment
+  //  3. neither          — a normal visit; show the landing page as usual
+  async function bootFromUrl(){
+    const params = new URLSearchParams(window.location.search);
+    const paramId = params.get('id');
+    const paramNoteId = params.get('noteId');
+    const paramPaid = params.get('paid');
+    const paramPayment = params.get('payment');
+
+    if(paramId){
+      try{
+        const res = await fetch(CONFIG.API_BASE + '/api/notes/' + encodeURIComponent(paramId));
+        if(!res.ok) throw new Error('not found');
+        const data = await res.json();
+        state.remoteNoteId = paramId;
+        state.type = data.type; state.sender = data.sender; state.recipient = data.recipient;
+        state.message = data.message; state.decorations = data.decorations || [];
+        state.photos = data.photos || []; state.bigEmoji = data.bigEmoji || null;
+        state.paper = data.paper || null; state.font = data.font || FONTS[0];
+        state.color = data.color || null;
+        applyTheme(state.type, state.color);
+        runReveal();
+      }catch(e){
+        document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;'
+          +'color:#fff;font-family:Inter,sans-serif;text-align:center;padding:24px;background:#0b0710;">'
+          +"This little moment couldn't be found — the link may be wrong, or the note hasn't been paid for.</div>";
+      }
+      return true;
+    }
+
+    if(paramNoteId && paramPaid){
+      // A full page reload happened via the real Paystack redirect, so all the
+      // in-memory note data from the builder is gone — fetch it back from the
+      // backend so the success screen's preview/keepsake/video actually work.
+      try{
+        const res = await fetch(CONFIG.API_BASE + '/api/notes/' + encodeURIComponent(paramNoteId));
+        if(!res.ok) throw new Error('not found');
+        const data = await res.json();
+        state.remoteNoteId = paramNoteId;
+        state.type = data.type; state.sender = data.sender; state.recipient = data.recipient;
+        state.message = data.message; state.decorations = data.decorations || [];
+        state.photos = data.photos || []; state.bigEmoji = data.bigEmoji || null;
+        state.paper = data.paper || null; state.font = data.font || FONTS[0];
+        state.color = data.color || null;
+        applyTheme(state.type, state.color);
+      }catch(e){
+        // Payment succeeded but we couldn't re-fetch the note content — still
+        // show success with the link (it's real and works), just skip preview.
+        state.remoteNoteId = paramNoteId;
+      }
+      const shareUrl = window.location.origin + window.location.pathname + '?id=' + paramNoteId;
+      el('fakeLink').textContent = shareUrl.replace(/^https?:\/\//,'');
+      sound.paySuccess();
+      showScreen('screen-builder-success');
+      return true;
+    }
+
+    if(paramPayment){
+      // Paystack redirected back but the payment wasn't successful — send them
+      // back to review rather than pretending everything worked.
+      alert('Payment did not complete (' + paramPayment + '). You can try again.');
+    }
+
+    return false;
+  }
+
+  /* ---------------- init ---------------- */
+  applyTheme('love', null);
+  makeMotes();
+  renderTypeGrid();
+  renderExamplesMarquee();
+  bootFromUrl().then(handled=>{
+    if(!handled) showScreen('screen-landing');
+  });
+})();
+</script>
+
+</body>
+</html>
