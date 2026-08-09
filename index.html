@@ -326,7 +326,7 @@
   .create-another{ margin-top:14px; background:none; border:none; color:rgba(255,255,255,0.4); font-size:12px; cursor:pointer; text-decoration:underline; }
 
   /* ===== reveal screens (receiver side) ===== */
-  #screen-intro .glow-orb{
+  .glow-orb{
     width:64px; height:64px; border-radius:50%; background:radial-gradient(circle, rgba(var(--glow),0.9), rgba(var(--glow),0));
     box-shadow:0 0 40px 10px rgba(var(--glow),0.5); animation:pulse 2.6s ease-in-out infinite; margin-bottom:28px;
   }
@@ -474,8 +474,13 @@
 
 <div class="app" id="app">
 
+    <!-- ===================== LOADING (shown briefly while we check the URL) ===================== -->
+    <div class="screen active" id="screen-loading">
+      <div class="glow-orb"></div>
+    </div>
+
     <!-- ===================== LANDING ===================== -->
-    <div class="screen scrolly active" id="screen-landing">
+    <div class="screen scrolly" id="screen-landing">
       <div class="landing-hero">
         <div class="eyebrow">little moments</div>
         <div class="landing-glow"></div>
@@ -618,10 +623,11 @@
 
       <div class="price-row">
         <span class="pr-label">One magical note</span>
-        <span class="pr-amount">$2.00</span>
+        <span class="pr-amount" id="prAmount">$2.00</span>
       </div>
+      <p class="paywall-note" id="prLocalNote" style="margin-top:-14px;"></p>
       <button class="pay-btn" id="payBtn">
-        <span class="spinner"></span><span class="pay-label">Pay $2 &amp; create note</span>
+        <span class="spinner"></span><span class="pay-label" id="payLabel">Pay $2 &amp; create note</span>
       </button>
       <p class="paywall-note" id="payError" style="display:none; color:#ff8a8a;"></p>
       <div class="save-bar" style="background:none; padding-top:10px;">
@@ -848,7 +854,7 @@
 
   const el = id => document.getElementById(id);
   const root = document.documentElement;
-  const screens = ['screen-landing','screen-builder-types','screen-builder-customize','screen-builder-review','screen-builder-success',
+  const screens = ['screen-loading','screen-landing','screen-builder-types','screen-builder-customize','screen-builder-review','screen-builder-success',
     'screen-intro','screen-envelope','screen-sender','screen-letter','screen-candle','screen-reaction','screen-confirm'];
 
   // Point this at your deployed backend. Override before this script runs by setting
@@ -1475,8 +1481,26 @@
   el('toReview').addEventListener('click', ()=>{
     if(!state.message){ state.message = THEMES[state.type].msgs[0]; }
     renderReview();
+    fetchPrice();
     showScreen('screen-builder-review');
   });
+
+  let cachedPrice = null;
+  async function fetchPrice(){
+    try{
+      const res = await fetch(CONFIG.API_BASE + '/api/price');
+      if(!res.ok) throw new Error('price fetch failed');
+      const data = await res.json();
+      cachedPrice = data;
+      el('prAmount').textContent = '$'+data.usd;
+      el('prLocalNote').textContent = 'Charged as '+data.localDisplay+' (≈ $'+data.usd+')';
+      el('payLabel').textContent = 'Pay $'+data.usd+' & create note';
+    }catch(e){
+      // Backend unreachable — keep the static $2.00 fallback already in the HTML,
+      // just don't show a local-currency line we can't actually confirm.
+      el('prLocalNote').textContent = '';
+    }
+  }
 
   function buildPhotoCubes(containerId, animate){
     const row = el(containerId); row.innerHTML='';
@@ -1634,9 +1658,9 @@
       const span = document.createElement('span'); span.className='word';
       span.textContent = w + (i<words.length-1?' ':'');
       body.appendChild(span);
-      setTimeout(()=>span.classList.add('show'), i*70);
+      setTimeout(()=>span.classList.add('show'), i*115);
     });
-    const totalDelay = words.length*70 + 500;
+    const totalDelay = words.length*115 + 500;
     setTimeout(()=>{
       const th = THEMES[state.type];
       burstParticles(el('celebrationLayer'), th.particle, 22);
