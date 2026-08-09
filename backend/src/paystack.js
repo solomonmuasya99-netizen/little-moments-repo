@@ -11,7 +11,7 @@ function secretKey() {
 
 // Starts a payment. Returns { authorization_url, access_code, reference }.
 // amountMinorUnits: price in the currency's smallest unit (e.g. cents/kobo) — never send fractional units.
-async function initializeTransaction({ email, amountMinorUnits, currency, reference, callbackUrl, metadata }) {
+async function initializeTransaction({ email, amountMinorUnits, currency, reference, callbackUrl, metadata, channels }) {
   const res = await fetch(`${PAYSTACK_BASE}/transaction/initialize`, {
     method: 'POST',
     headers: {
@@ -25,6 +25,7 @@ async function initializeTransaction({ email, amountMinorUnits, currency, refere
       reference,
       callback_url: callbackUrl,
       metadata,
+      ...(channels ? { channels } : {}),
     }),
   });
   const data = await res.json();
