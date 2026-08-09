@@ -13,7 +13,10 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5500';
 // e.g. by double-clicking it or serving it from VS Code's Live Server).
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || origin === FRONTEND_URL) return callback(null, true);
+    // Browsers send Origin as scheme+host only (no path), but FRONTEND_URL may
+    // include a path (e.g. GitHub Pages project sites: https://you.github.io/repo).
+    // So we check that FRONTEND_URL starts with the request's origin, not an exact match.
+    if (!origin || FRONTEND_URL.startsWith(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
 }));
