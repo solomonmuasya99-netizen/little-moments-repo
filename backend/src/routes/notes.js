@@ -6,9 +6,29 @@ const paystack = require('../paystack');
 const router = express.Router();
 
 const CURRENCY = process.env.PAYSTACK_CURRENCY || 'KES';
-const PRICE = parseInt(process.env.NOTE_PRICE_MINOR_UNITS || '20000', 10);
+// Price is anchored to a real USD amount, then converted to the charge
+// currency using a rate you control — NOT an arbitrary local-currency number,
+// so "$2" always actually means $2, not whatever KES/GHS/etc figure was typed in.
+const USD_CENTS = parseInt(process.env.NOTE_PRICE_USD_CENTS || '200', 10); // 200 = $2.00
+const USD_TO_LOCAL_RATE = parseFloat(process.env.USD_TO_LOCAL_RATE || '130'); // update as rates move
+const PRICE = Math.round((USD_CENTS / 100) * USD_TO_LOCAL_RATE * 100); // in the charge currency's minor units
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5500';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+
+// ---------------------------------------------------------------------------
+// GET /api/price
+// The single source of truth for what a note actually costs, in both USD and
+// the charge currency. The frontend fetches this instead of hardcoding "$2.00"
+// so the displayed price can never drift out of sync with what's really charged.
+// ---------------------------------------------------------------------------
+router.get('/price', (req, res) => {
+  res.json({
+    usd: (USD_CENTS / 100).toFixed(2),
+    currency: CURRENCY,
+    amountMinorUnits: PRICE,
+    localDisplay: `${CURRENCY} ${(PRICE / 100).toFixed(2)}`,
+  });
+});
 
 // ---------------------------------------------------------------------------
 // POST /api/notes
@@ -38,6 +58,12 @@ router.post('/notes', async (req, res) => {
       amountMinorUnits: PRICE,
       currency: CURRENCY,
       reference,
+      // Explicitly request card as a channel. Whether Mastercard / non-African
+      // cards actually go through depends on your Paystack account's enabled
+      // channels and international-card settings — that's a dashboard/KYC
+      // setting on Paystack's side, not something this code controls. Check
+      // Settings → Preferences (or ask Paystack support) if cards are declining.
+      channels: ['card'],
       // IMPORTANT: this points at OUR backend, not the frontend directly.
       // Paystack will redirect the browser here first so we can verify the
       // payment server-side before anyone sees a "success" screen — a raw
