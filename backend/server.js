@@ -23,7 +23,12 @@ app.use(cors({
 
 // Capture the raw request body (needed to verify Paystack's webhook signature)
 // while still parsing it as JSON for normal use in req.body.
+// limit: photos are sent as full-quality base64 images (up to 5 of them), which
+// easily blows past Express's default 100kb body limit — 25mb gives real headroom.
+// (Longer term: move photos to real file uploads instead of base64-in-JSON —
+// see the "What's not done yet" section in the README.)
 app.use(express.json({
+  limit: '25mb',
   verify: (req, res, buf) => { req.rawBody = buf; },
 }));
 
@@ -35,6 +40,20 @@ app.use('/api', notesRouter);
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (req, res) => res.json({ ok: true }));
+
+// Safety net: turn body-parser/CORS/etc errors into proper JSON instead of
+// Express's default HTML error page, so the frontend can always show a real
+// message instead of failing to parse the response.
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'That note is too large to send (photos included). Try fewer or smaller photos.' });
+  }
+  if (err && err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ error: 'Request blocked (CORS).' });
+  }
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Something went wrong on the server.' });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
