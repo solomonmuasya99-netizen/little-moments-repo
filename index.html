@@ -151,6 +151,8 @@
     border-radius:12px; padding:11px 13px; font-size:14px; font-family:'Inter',sans-serif; resize:none;
   }
   .form-block input:focus, .form-block textarea:focus{ outline:none; border-color:var(--accent); }
+  .word-count{ font-size:10.5px; color:rgba(255,255,255,0.35); text-align:right; margin-top:5px; }
+  .word-count.near-limit{ color:var(--accent); }
   .inspire-btn{
     margin-top:8px; background:none; border:1px dashed rgba(255,255,255,0.25); color:rgba(255,255,255,0.65);
     font-size:12px; padding:8px 12px; border-radius:100px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
@@ -542,6 +544,7 @@
       <div class="form-block">
         <label>Your message</label>
         <textarea id="bMessage" rows="5" placeholder="Write what you're feeling..."></textarea>
+        <div class="word-count" id="wordCount">0 / 600 words</div>
         <button class="inspire-btn" id="inspireBtn">✨ I don't know what to write</button>
       </div>
 
@@ -693,7 +696,7 @@
       <div class="from-name" id="fromName">Alex</div>
     </div>
 
-    <div class="screen" id="screen-letter">
+    <div class="screen scrolly" id="screen-letter">
       <div class="letter-card" id="letterCard">
         <div class="letter-deco" id="letterDeco"></div>
         <div class="letter-greeting" id="letterGreeting">Dear Sam,</div>
@@ -1304,6 +1307,7 @@
     el('bRecipient').value = state.recipient;
     el('bSender').value = state.sender;
     el('bMessage').value = state.message;
+    enforceWordLimit(el('bMessage'));
     el('custHeadline').textContent = 'Make it ' + THEMES[state.type].label.toLowerCase().replace(' note','') + '-perfect';
     renderStyleChips(); renderColorChips(); renderDecoList(); renderPaperChips(); renderFontList();
     renderPhotoGrid(); renderEmojiRow();
@@ -1457,7 +1461,21 @@
 
   el('bRecipient').addEventListener('input', e=> state.recipient = e.target.value || 'Sam');
   el('bSender').addEventListener('input', e=> state.sender = e.target.value || 'Alex');
-  el('bMessage').addEventListener('input', e=>{ state.message = e.target.value; state.messageEdited = true; });
+  const MAX_MESSAGE_WORDS = 600;
+  function enforceWordLimit(textarea){
+    const words = textarea.value.split(/\s+/).filter(Boolean);
+    if(words.length > MAX_MESSAGE_WORDS){
+      textarea.value = words.slice(0, MAX_MESSAGE_WORDS).join(' ');
+    }
+    const count = textarea.value.split(/\s+/).filter(Boolean).length;
+    const counter = el('wordCount');
+    counter.textContent = count+' / '+MAX_MESSAGE_WORDS+' words';
+    counter.classList.toggle('near-limit', count >= MAX_MESSAGE_WORDS);
+  }
+  el('bMessage').addEventListener('input', e=>{
+    enforceWordLimit(e.target);
+    state.message = e.target.value; state.messageEdited = true;
+  });
 
   function flashSave(toastEl){
     toastEl.classList.add('show');
@@ -1472,6 +1490,7 @@
       const o = document.createElement('div'); o.className='msg-option'; o.textContent=m;
       o.addEventListener('click', ()=>{
         state.message = m; state.messageEdited = true; el('bMessage').value = m;
+        enforceWordLimit(el('bMessage'));
         el('msgModal').classList.remove('show');
       });
       opts.appendChild(o);
